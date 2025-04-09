@@ -18,6 +18,14 @@ import Glitch from './pages/Glitch';
 import AccessDenied from './pages/AccessDenied';
 import NotFound from './pages/NotFound';
 import CoreDump from './pages/CoreDump';
+import Whisper from './components/Whisper';
+
+// Inside your main <App /> component's return block
+<>
+  {/* Your routes/components */}
+  <Whisper />
+</>
+
 
 
 function App() {

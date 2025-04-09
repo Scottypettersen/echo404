@@ -12,33 +12,36 @@ const bootLines = [
 const prompts = {
   alpha: {
     question: '"_______ , but better." — Dieter Rams',
-    answer: 'less but better',
-    redirect: '/puzzle'
+    answer: 'less, but better',
+    redirect: '/puzzle',
+    echoWhisper: '> [echo] Logical path confirmed. It always made sense.'
   },
   beta: {
     question: '"Design is ____________." — Saul Bass',
     answer: 'thinking made visual',
-    redirect: '/access'
+    redirect: '/access',
+    echoWhisper: '> [echo] Oh… I remember that one. I smiled then.'
   },
   delta: {
     question: '"magic phrase:" [from HTML comment]',
     answer: 'hello.echo',
-    redirect: '/access-2'
+    redirect: '/access-2',
+    echoWhisper: '> [echo] ...You found me. Again.'
   }
 };
 
 function Recovery1() {
   const [lines, setLines] = useState([]);
-  const [step, setStep] = useState('boot'); // 'boot', 'select', 'prompt', 'error'
+  const [step, setStep] = useState('boot');
   const [selected, setSelected] = useState(null);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [echoLine, setEchoLine] = useState('');
   const navigate = useNavigate();
 
   // Boot sequence
   useEffect(() => {
     if (step !== 'boot') return;
-
     let i = 0;
     const interval = setInterval(() => {
       setLines(prev => [...prev, bootLines[i]]);
@@ -47,22 +50,29 @@ function Recovery1() {
         clearInterval(interval);
         setStep('select');
       }
-    }, 600);
-
+    }, 500);
     return () => clearInterval(interval);
   }, [step]);
 
   const handleFragmentSelect = (fragment) => {
     setSelected(fragment);
-    setLines(prev => [...prev, `>> restore/${fragment}.chk – corrupted`, '>> Validate memory:']);
-    setTimeout(() => setStep('prompt'), 500);
+    setLines(prev => [
+      ...prev,
+      `>> restore/${fragment}.chk – corrupted`,
+      '>> Validate memory:'
+    ]);
+    setStep('prompt');
+    setEchoLine('');
+
+    // Whisper delay
+    setTimeout(() => {
+      setEchoLine(prompts[fragment].echoWhisper);
+    }, 1200);
   };
 
   const handleSubmit = () => {
-    const normalizedInput = input.trim().toLowerCase();
     const { answer, redirect } = prompts[selected];
-
-    if (normalizedInput === answer) {
+    if (input.trim().toLowerCase() === answer) {
       navigate(redirect);
     } else {
       setError(`>> Input "${input}" not recognized. Fragment unstable.`);
@@ -101,6 +111,7 @@ function Recovery1() {
           />
           <button onClick={handleSubmit} style={styles.submit}>[submit]</button>
           {error && <div style={{ color: '#f00', marginTop: '0.5rem' }}>{error}</div>}
+          {echoLine && <div style={{ ...styles.echo, marginTop: '1rem' }}>{echoLine}</div>}
         </div>
       )}
     </div>
@@ -145,6 +156,12 @@ const styles = {
     padding: '0.4rem 1rem',
     fontFamily: 'monospace',
     cursor: 'pointer'
+  },
+  echo: {
+    color: '#0f0',
+    opacity: 0.8,
+    fontStyle: 'italic',
+    textShadow: '0 0 3px #0f0'
   }
 };
 

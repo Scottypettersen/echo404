@@ -1,4 +1,3 @@
-// src/pages/Restore.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,9 +21,9 @@ function Restore() {
     };
 
     const redirect = {
-      alpha: '/puzzle',      // goes to puzzle page
-      beta: '/access',       // goes to quote page
-      delta: '/access-2'     // goes to magic phrase page
+      alpha: '/puzzle',      // Quote puzzle
+      beta: '/access',       // Access path 1
+      delta: '/access-2'     // Magic phrase
     };
 
     if (input.toLowerCase().trim() === answers[selected]) {

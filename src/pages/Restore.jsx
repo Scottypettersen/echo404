@@ -21,8 +21,14 @@ function Restore() {
       delta: 'hello.echo'
     };
 
+    const redirect = {
+      alpha: '/puzzle',      // goes to puzzle page
+      beta: '/access',       // goes to quote page
+      delta: '/access-2'     // goes to magic phrase page
+    };
+
     if (input.toLowerCase().trim() === answers[selected]) {
-      navigate('/wall');
+      navigate(redirect[selected]);
     } else {
       setError('>> incorrect. try again.');
     }

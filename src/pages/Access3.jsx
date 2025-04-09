@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+
 import { useNavigate } from 'react-router-dom';
 
 const correctOrder = ['E', 'C', 'H', 'O'];

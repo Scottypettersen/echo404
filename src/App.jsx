@@ -16,6 +16,9 @@ import Access3 from './pages/Access3';     // Puzzle 3: Tile rearrange
 // Branches and errors
 import Glitch from './pages/Glitch';
 import AccessDenied from './pages/AccessDenied';
+import NotFound from './pages/NotFound';
+import CoreDump from './pages/CoreDump';
+
 
 function App() {
   return (
@@ -25,7 +28,9 @@ function App() {
       <Route path="/recovery-1" element={<Recovery1 />} />
       <Route path="/unlock" element={<Unlock />} />
       <Route path="/wall" element={<WallGate />} />
-      <Route path="/puzzle" element={<Puzzle />} />
+      <Route path="/puzzle" element={<Puzzle />}
+       /><Route path="/core.dump" element={<CoreDump />} />
+      <Route path="*" element={<NotFound />} />
 
       {/* Puzzle sequence */}
       <Route path="/access" element={<Access />} />

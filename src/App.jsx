@@ -4,7 +4,6 @@ import { Routes, Route } from 'react-router-dom';
 // Core narrative flow
 import Trace from './pages/Trace';
 import Recovery1 from './pages/Recovery1';
-import Restore from './pages/Restore';
 import WallGate from './pages/WallGate';
 import Unlock from './pages/Unlock';
 import Puzzle from './pages/Puzzle';

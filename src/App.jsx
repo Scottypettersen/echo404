@@ -18,40 +18,36 @@ import Glitch from './pages/Glitch';
 import AccessDenied from './pages/AccessDenied';
 import NotFound from './pages/NotFound';
 import CoreDump from './pages/CoreDump';
+
+// Global visual overlays
 import Whisper from './components/Whisper';
-
-// Inside your main <App /> component's return block
-<>
-  {/* Your routes/components */}
-  <Whisper />
-</>
-
-
 
 function App() {
   return (
-    <Routes>
-      {/* Narrative flow */}
-      <Route path="/" element={<Trace />} />
-      <Route path="/recovery-1" element={<Recovery1 />} />
-      <Route path="/unlock" element={<Unlock />} />
-      <Route path="/wall" element={<WallGate />} />
-      <Route path="/puzzle" element={<Puzzle />}
-       /><Route path="/core.dump" element={<CoreDump />} />
-      <Route path="*" element={<NotFound />} />
+    <>
+      <Routes>
+        {/* Narrative flow */}
+        <Route path="/" element={<Trace />} />
+        <Route path="/recovery-1" element={<Recovery1 />} />
+        <Route path="/unlock" element={<Unlock />} />
+        <Route path="/wall" element={<WallGate />} />
+        <Route path="/puzzle" element={<Puzzle />} />
+        <Route path="/core.dump" element={<CoreDump />} />
+        <Route path="*" element={<NotFound />} />
 
-      {/* Puzzle sequence */}
-      <Route path="/access" element={<Access />} />
-      <Route path="/access-2" element={<Access2 />} />
-      <Route path="/access-3" element={<Access3 />} />
+        {/* Puzzle sequence */}
+        <Route path="/access" element={<Access />} />
+        <Route path="/access-2" element={<Access2 />} />
+        <Route path="/access-3" element={<Access3 />} />
 
-      {/* Branches / detours */}
-      <Route path="/glitch" element={<Glitch />} />
-      <Route path="/access-denied" element={<AccessDenied />} />
+        {/* Branches / detours */}
+        <Route path="/glitch" element={<Glitch />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
+      </Routes>
 
-      {/* Future: 404 fallback could be added here */}
-      {/* <Route path="*" element={<NotFound />} /> */}
-    </Routes>
+      {/* Global whisper overlay */}
+      <Whisper />
+    </>
   );
 }
 

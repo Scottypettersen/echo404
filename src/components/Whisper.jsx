@@ -43,4 +43,12 @@ const styles = {
     whiteSpace: 'pre-wrap',
     textShadow: '0 0 5px #0f0',
   }
-};
+};useEffect(() => {
+  console.log('[Whisper.jsx] whisper:', whisper); // Debug line
+  if (whisper) {
+    setVisible(true);
+    const timer = setTimeout(() => setVisible(false), 5000);
+    return () => clearTimeout(timer);
+  }
+}, [whisper]);
+

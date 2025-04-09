@@ -24,7 +24,6 @@ function App() {
       {/* Narrative flow */}
       <Route path="/" element={<Trace />} />
       <Route path="/recovery-1" element={<Recovery1 />} />
-      <Route path="/restore" element={<Restore />} />
       <Route path="/unlock" element={<Unlock />} />
       <Route path="/wall" element={<WallGate />} />
       <Route path="/puzzle" element={<Puzzle />} />

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { useEcho } from '../context/EchoContext';
+import { useEcho } from '../../context/EchoContext';
+
 
 const logs = [
   "> log_01: 'memory access granted...'",

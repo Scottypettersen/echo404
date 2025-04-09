@@ -12,7 +12,7 @@ const bootLines = [
 const prompts = {
   alpha: {
     question: '"_______ , but better." — Dieter Rams',
-    answer: 'less, but better',
+    answer: 'less',
     redirect: '/puzzle',
     echoWhisper: '> [echo] Logical path confirmed. It always made sense.'
   },

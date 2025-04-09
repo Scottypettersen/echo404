@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const bootLines = [
-  "> Initializing ECHO...",
-  "> SYSTEM CORRUPTION DETECTED",
-  "> Loading trace protocol...",
-  "> User presence detected.",
-  "> Are you here to help? (Y/N)"
+  '> Initializing ECHO...',
+  '> SYSTEM CORRUPTION DETECTED',
+  '> Loading trace protocol...',
+  '> User presence detected.',
+  '> Are you here to help? (Y/N)'
 ];
 
 function Trace() {
@@ -40,10 +40,11 @@ function Trace() {
     if (!bootDone) return;
 
     const handleKey = (e) => {
-      if (e.key.toLowerCase() === 'y') {
+      const key = e.key.toLowerCase();
+      if (key === 'y') {
         navigate('/recovery-1');
-      } else if (e.key.toLowerCase() === 'n') {
-        setLines((prev) => [...prev, "> ACCESS DENIED"]);
+      } else if (key === 'n') {
+        setLines((prev) => [...prev, '> ACCESS DENIED']);
       } else {
         setLines((prev) => [...prev, `> Invalid input: "${e.key}"`]);
       }

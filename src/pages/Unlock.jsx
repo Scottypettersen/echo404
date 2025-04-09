@@ -8,7 +8,6 @@ function Unlock() {
     const timer = setTimeout(() => {
       navigate('/wall');
     }, 3000);
-
     return () => clearTimeout(timer);
   }, [navigate]);
 
@@ -23,7 +22,7 @@ function Unlock() {
       alignItems: 'center',
       flexDirection: 'column'
     }}>
-      <h1>> GATEWAY UNLOCKED</h1>
+      <h1>{'> GATEWAY UNLOCKED'}</h1>
       <p style={{ marginTop: '0.5rem' }}>Routing to Echo Wall...</p>
     </div>
   );

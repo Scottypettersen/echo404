@@ -43,12 +43,12 @@ function Restore() {
     }}>
       {!selected ? (
         <>
-          <p>> memory/core/init – fail</p>
-          <p>> trace/init/echo – partial</p>
-          <p>> ! WARNING: restoration unstable</p>
-          <p>> fragments available: [alpha], [beta], [delta]</p>
+          <p>{'> memory/core/init – fail'}</p>
+          <p>{'> trace/init/echo – partial'}</p>
+          <p>{'> ! WARNING: restoration unstable'}</p>
+          <p>{'> fragments available: [alpha], [beta], [delta]'}</p>
           <br />
-          <p>> Which memory fragment should be restored?</p>
+          <p>{'> Which memory fragment should be restored?'}</p>
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
             {['alpha', 'beta', 'delta'].map(f => (
               <button key={f} onClick={() => handleSelection(f)}>[{f}]</button>
@@ -57,8 +57,8 @@ function Restore() {
         </>
       ) : (
         <>
-          <p>> restore/{selected}.chk – corrupted</p>
-          <p>> validate memory by completing the phrase:</p>
+          <p>{`> restore/${selected}.chk – corrupted`}</p>
+          <p>{'> validate memory by completing the phrase:'}</p>
           <p style={{ color: '#999' }}>
             {selected === 'alpha' && '"_______ , but better." — Dieter Rams'}
             {selected === 'beta' && '"Design is ____________." — Saul Bass'}

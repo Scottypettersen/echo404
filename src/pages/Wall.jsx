@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const ROWS = 25;
 const COLS = 40;
 
 function Wall() {
   const [grid, setGrid] = useState(
-    Array.from({ length: ROWS * COLS }, () => ({
-      claimed: false,
-      color: '#0f0',
-      label: '',
-    }))
+    () =>
+      JSON.parse(localStorage.getItem('echo-wall')) ||
+      Array.from({ length: ROWS * COLS }, () => ({
+        claimed: false,
+        color: '#0f0',
+        label: '',
+      }))
   );
   const [activeIndex, setActiveIndex] = useState(null);
   const [formData, setFormData] = useState({ color: '#0f0', label: '' });
   const [log, setLog] = useState([]);
+
+  useEffect(() => {
+    localStorage.setItem('echo-wall', JSON.stringify(grid));
+  }, [grid]);
 
   const handleClaim = (index) => {
     if (!grid[index].claimed) {
@@ -28,7 +34,7 @@ function Wall() {
     updatedGrid[activeIndex] = {
       claimed: true,
       color: formData.color,
-      label: formData.label.slice(0, 3).toUpperCase(), // Limit to 3 chars
+      label: formData.label.slice(0, 3).toUpperCase(), // Max 3 chars
     };
     setGrid(updatedGrid);
     setLog([
@@ -45,12 +51,14 @@ function Wall() {
       <p style={styles.subtitle}>Click a tile to leave your trace.</p>
 
       <div style={styles.gridWrapper}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${COLS}, 24px)`,
-          gap: '2px',
-          justifyContent: 'center'
-        }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${COLS}, 24px)`,
+            gap: '2px',
+            justifyContent: 'center',
+          }}
+        >
           {grid.map((tile, index) => (
             <div
               key={index}
@@ -60,7 +68,7 @@ function Wall() {
                 ...styles.tile,
                 backgroundColor: tile.claimed ? tile.color : '#111',
                 color: tile.claimed ? '#0f0' : 'transparent',
-                cursor: tile.claimed ? 'default' : 'pointer'
+                cursor: tile.claimed ? 'default' : 'pointer',
               }}
             >
               {tile.claimed ? tile.label : ''}
@@ -71,27 +79,37 @@ function Wall() {
 
       {activeIndex !== null && (
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-          <p style={styles.terminalLine}>> Claiming square #{activeIndex}</p>
+          <p style={styles.terminalLine}>
+            {`> Claiming square #${activeIndex}`}
+          </p>
           <input
             type="text"
             placeholder="Label or name"
             value={formData.label}
-            onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, label: e.target.value })
+            }
             style={styles.input}
           />
           <input
             type="color"
             value={formData.color}
-            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, color: e.target.value })
+            }
             style={{ marginLeft: '1rem' }}
           />
-          <button onClick={submitClaim} style={styles.button}>[submit]</button>
+          <button onClick={submitClaim} style={styles.button}>
+            [submit]
+          </button>
         </div>
       )}
 
       <div style={styles.logContainer}>
         {log.map((line, idx) => (
-          <div key={idx} style={styles.terminalLine}>{line}</div>
+          <div key={idx} style={styles.terminalLine}>
+            {line}
+          </div>
         ))}
       </div>
     </div>
@@ -160,7 +178,7 @@ const styles = {
   terminalLine: {
     fontSize: '0.75rem',
     lineHeight: '1.3',
-  }
+  },
 };
 
 export default Wall;

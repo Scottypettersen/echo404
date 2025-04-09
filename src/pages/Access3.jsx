@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-
 import { useNavigate } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const correctOrder = ['E', 'C', 'H', 'O'];
 
@@ -28,8 +27,6 @@ function Access3() {
 
     if (JSON.stringify(reordered) === JSON.stringify(correctOrder)) {
       setSolved(true);
-      // Unlock wall access
-      localStorage.setItem('echo-puzzle-3', 'true');
       localStorage.setItem('echo-unlocked', 'true');
       setTimeout(() => navigate('/unlock'), 1500);
     }
@@ -37,7 +34,7 @@ function Access3() {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>> Final Trace Lock</h1>
+      <h1 style={styles.title}>{'> Final Trace Lock'}</h1>
       <p style={styles.subtitle}>Reorder memory tiles to restore access.</p>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -69,7 +66,9 @@ function Access3() {
       </DragDropContext>
 
       {solved && (
-        <p style={{ color: '#0f0', marginTop: '1rem' }}>✓ Memory alignment complete...</p>
+        <p style={{ color: '#0f0', marginTop: '1rem' }}>
+          ✓ Memory alignment complete.
+        </p>
       )}
     </div>
   );

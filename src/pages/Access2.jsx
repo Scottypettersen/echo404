@@ -30,7 +30,7 @@ function Access2() {
       padding: '2rem'
     }}>
       <p style={{ marginBottom: '1rem' }}>
-        > ECHO: ██████████  
+        {'> ECHO: ██████████'}
       </p>
       <p style={{ fontSize: '0.9rem', color: '#666' }}>(Hint: It's hidden in the static...)</p>
 
@@ -53,6 +53,7 @@ function Access2() {
           textAlign: 'center',
           marginTop: '1rem'
         }}
+        autoFocus
       />
 
       <button
@@ -72,7 +73,7 @@ function Access2() {
 
       {status === 'fail' && (
         <p style={{ color: '#f00', marginTop: '1rem' }}>
-          > Incorrect input. Signal not recognized.
+          {'> Incorrect input. Signal not recognized.'}
         </p>
       )}
       {status === 'success' && (

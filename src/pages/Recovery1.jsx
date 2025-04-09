@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const logLines = [
-  ">> memory/core/init - fail",
-  ">> node/system/mem-03 - missing",
-  ">> trace/init/echo - partial",
-  ">> ! WARNING: restoration unstable",
-  ">> fragments available: [alpha], [beta], [delta]"
+  '>> memory/core/init - fail',
+  '>> node/system/mem-03 - missing',
+  '>> trace/init/echo - partial',
+  '>> ! WARNING: restoration unstable',
+  '>> fragments available: [alpha], [beta], [delta]'
 ];
 
 function Recovery1() {
@@ -27,9 +27,9 @@ function Recovery1() {
     if (fragment === 'alpha') {
       navigate('/restore');
     } else if (fragment === 'beta') {
-      navigate('/wall');
-    } else {
-      alert('Fragment data corrupted.');
+      navigate('/glitch');
+    } else if (fragment === 'delta') {
+      navigate('/access-denied');
     }
   };
 
@@ -48,7 +48,7 @@ function Recovery1() {
 
       {lines.length === logLines.length && (
         <div style={{ marginTop: '2rem' }}>
-          <div>> Which memory fragment should be restored?</div>
+          <div>{'> Which memory fragment should be restored?'}</div>
           <div style={{ marginTop: '1rem' }}>
             <button onClick={() => handleChoice('alpha')} style={btnStyle}>[alpha]</button>
             <button onClick={() => handleChoice('beta')} style={btnStyle}>[beta]</button>

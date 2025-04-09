@@ -30,7 +30,7 @@ function Puzzle() {
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-      <p>> COMPLETE THE QUOTE:</p>
+      <p>{'> COMPLETE THE QUOTE:'}</p>
       <p style={{ color: '#999', margin: '1rem 0' }}>
         “Design is the silent ambassador of your _____.” — Paul Rand
       </p>
@@ -52,6 +52,7 @@ function Puzzle() {
           padding: '0.5rem',
           textAlign: 'center'
         }}
+        autoFocus
       />
 
       <button
@@ -71,7 +72,7 @@ function Puzzle() {
 
       {status === 'fail' && (
         <p style={{ color: '#f00', marginTop: '1rem' }}>
-          > Incorrect.
+          {'> Incorrect.'}
         </p>
       )}
       {status === 'success' && (
@@ -84,4 +85,3 @@ function Puzzle() {
 }
 
 export default Puzzle;
-s

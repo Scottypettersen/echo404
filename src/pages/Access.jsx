@@ -30,7 +30,7 @@ function Access() {
       padding: '2rem'
     }}>
       <p style={{ marginBottom: '1rem', maxWidth: '600px' }}>
-        > “A designer knows he has achieved perfection not when there is nothing left to add, but when there is nothing left to _______.”
+        {`> “A designer knows he has achieved perfection not when there is nothing left to add, but when there is nothing left to _______.”`}
       </p>
 
       <input
@@ -51,6 +51,7 @@ function Access() {
           width: '250px',
           textAlign: 'center'
         }}
+        autoFocus
       />
 
       <button
@@ -69,7 +70,7 @@ function Access() {
       </button>
 
       {status === 'fail' && (
-        <p style={{ color: '#f00', marginTop: '1rem' }}>> ACCESS DENIED</p>
+        <p style={{ color: '#f00', marginTop: '1rem' }}>{'> ACCESS DENIED'}</p>
       )}
       {status === 'success' && (
         <p style={{ color: '#0f0', marginTop: '1rem' }}>✓ ACCESS FRAGMENT VERIFIED</p>

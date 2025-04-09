@@ -8,6 +8,8 @@ import Access from './pages/Access';       // Puzzle 1: Complete the quote
 import Access2 from './pages/Access2';     // Puzzle 2: Magic phrase
 import Access3 from './pages/Access3';     // Puzzle 3: Tile reorder
 import Unlock from './pages/Unlock';
+import Glitch from './pages/Glitch';
+import AccessDenied from './pages/AccessDenied';
 
 
 function App() {

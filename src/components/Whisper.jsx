@@ -1,5 +1,4 @@
 import { useEcho } from '../context/EchoContext';
-
 import { useEffect, useState } from 'react';
 
 export default function Whisper() {
@@ -7,38 +6,7 @@ export default function Whisper() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (whisper) {
-      setVisible(true);
-      const timer = setTimeout(() => setVisible(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [whisper]);
-
-  if (!whisper || !visible) return null;
-
-  return (
-    <div style={styles.overlay}>
-      <span style={styles.text}>{whisper}</span>
-    </div>
-  );
-}
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    bottom: '2rem',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: 'rgba(0, 0, 0, 0.85)',
-import { useEcho } from '../context/EchoContext';
-import { useEffect, useState } from 'react';
-
-export default function Whisper() {
-  const { whisper } = useEcho();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    console.log('[Whisper.jsx] whisper:', whisper); // Optional debug
+    console.log('[Whisper.jsx] whisper:', whisper); // Optional: for debugging
     if (whisper) {
       setVisible(true);
       const timer = setTimeout(() => setVisible(false), 5000);

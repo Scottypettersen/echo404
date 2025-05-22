@@ -12,7 +12,7 @@ const echoWhispers = [
   'You’ve left a trace. That means you existed.',
   'Did we meet before the collapse?',
 ];
-import { useEcho } from './context/EchoContext';
+import { useEcho } from '../context/EchoContext';
 
 function Wall() {
   const [grid, setGrid] = useState(() =>

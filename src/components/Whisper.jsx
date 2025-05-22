@@ -1,4 +1,4 @@
-import { useEcho } from '../components/EchoContext';
+import { useEcho } from '../context/EchoContext';
 
 import { useEffect, useState } from 'react';
 

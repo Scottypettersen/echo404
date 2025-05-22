@@ -1,4 +1,5 @@
-import { useEcho } from './context/EchoContext';
+import { useEcho } from '../components/EchoContext';
+
 import { useEffect, useState } from 'react';
 
 export default function Whisper() {

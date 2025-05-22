@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { useEcho } from '../context/EchoContext'; // ✅
 
 
+=======
+import { useEcho } from '../../context/EchoContext';
+>>>>>>> parent of c29c61f (fix echo??)
 
 
 

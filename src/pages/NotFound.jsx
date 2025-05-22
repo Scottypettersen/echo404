@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { useEcho } from '../context/EchoContext'; // ✅ correct
-
+import { useEcho } from '../../context/EchoContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function NotFound() {

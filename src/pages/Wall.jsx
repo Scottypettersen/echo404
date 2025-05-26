@@ -6,136 +6,125 @@ import {
   doc,
   setDoc
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '../firebase';
 import { useEcho } from '../context/EchoContext';
 
-const ROWS   = 25;
-const COLS   = 40;
-const TOTAL  = ROWS * COLS;
-const LS_KEY = 'echo-wall-tiles';
-
-// Generate or reuse a per-browser UUID
-function getUserId() {
-  let id = localStorage.getItem('echoUserId');
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem('echoUserId', id);
-  }
-  return id;
-}
+const ROWS = 25;
+const COLS = 40;
+const TOTAL = ROWS * COLS;
 
 export default function Wall() {
   const { setWhisper } = useEcho();
-  const userId = getUserId();
-
-  // 1️⃣ Load saved grid from localStorage (or blank)
-  const [tiles, setTiles] = useState(() => {
-    const stored = localStorage.getItem(LS_KEY);
-    return stored
-      ? JSON.parse(stored)
-      : Array(TOTAL).fill(null);
-  });
-
-  // 2️⃣ Which tile *you* claimed? (null == none yet)
-  const [myIndex, setMyIndex] = useState(() => {
-    const idx = tiles.findIndex(t => t?.claimedBy === userId);
-    return idx >= 0 ? idx : null;
-  });
-
-  // UI state
-  const [claimIdx, setClaimIdx] = useState(null);
-  const [viewData, setViewData] = useState(null);
-  const [form, setForm] = useState({ label: '', color: '#0f0', message: '' });
   const labelRef = useRef();
 
-  // Helper: persist to both React state + localStorage
-  const applyTiles = updated => {
-    setTiles(updated);
-    localStorage.setItem(LS_KEY, JSON.stringify(updated));
-  };
-
-  // 3️⃣ Real-time subscription to Firestore
+  // 🔑 Auth state
+  const [userId, setUserId] = useState(null);
   useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, user => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setWhisper('AUTH FAILED');
+      }
+    });
+    return () => unsubAuth();
+  }, [setWhisper]);
+
+  // 🔳 Grid of tiles from Firestore
+  const [tiles, setTiles] = useState(Array(TOTAL).fill(null));
+  // Your claimed index (null if none)
+  const [myIndex, setMyIndex] = useState(null);
+
+  useEffect(() => {
+    if (!userId) return;
     setWhisper('ECHO WALL LOADED');
+
     const unsub = onSnapshot(
       collection(db, 'tiles'),
-      snap => {
+      snapshot => {
         const updated = Array(TOTAL).fill(null);
         let foundMine = null;
-        snap.forEach(d => {
-          const data = d.data();
+
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
           updated[data.index] = data;
           if (data.claimedBy === userId) {
             foundMine = data.index;
           }
         });
-        applyTiles(updated);
+
+        setTiles(updated);
         setMyIndex(foundMine);
+
         if (foundMine !== null) {
           setWhisper(`YOU ALREADY CLAIMED #${foundMine}`);
         }
       },
       err => {
-        console.warn('Firestore subscribe failed', err);
+        console.error(err);
         setWhisper('OFFLINE MODE');
       }
     );
-    return () => unsub();
-  }, [setWhisper, userId]);
 
-  // 4️⃣ Click handler
-  const handleClick = i => {
-    const tile = tiles[i];
+    return () => unsub();
+  }, [userId, setWhisper]);
+
+  // UI state
+  const [claimIdx, setClaimIdx] = useState(null);
+  const [viewTile, setViewTile] = useState(null);
+  const [form, setForm] = useState({ label: '', color: '#0f0', message: '' });
+
+  // ─── Handlers ────────────────────────────────────────────────
+
+  const handleTileClick = idx => {
+    const tile = tiles[idx];
     if (tile) {
-      setViewData({ ...tile, index: i });
-      setWhisper(`VIEWING #${i}`);
+      // View mode
+      setViewTile({ ...tile, index: idx });
+      setWhisper(`VIEWING #${idx}`);
       return;
     }
-    // Only allow one claim ever
+    // If already claimed, block new claims
     if (myIndex !== null) {
       setWhisper(`ONE TILE ONLY (#${myIndex})`);
       return;
     }
-    setClaimIdx(i);
+    // Claim mode
+    setClaimIdx(idx);
     setForm({ label: '', color: '#0f0', message: '' });
-    setWhisper(`CLAIMING #${i}`);
-    // Focus the label input
+    setWhisper(`CLAIMING #${idx}`);
     setTimeout(() => labelRef.current?.focus(), 100);
   };
 
-  // 5️⃣ Submit new claim
   const submitClaim = async e => {
     e.preventDefault();
     if (!form.label.trim()) {
-      return labelRef.current.focus();
+      labelRef.current?.focus();
+      return;
     }
 
     const idx = claimIdx;
     const newTile = {
       index:     idx,
-      label:     form.label.slice(0,3).toUpperCase(),
+      label:     form.label.slice(0, 3).toUpperCase(),
       color:     form.color,
-      message:   form.message.slice(0,140),
+      message:   form.message.slice(0, 140),
       claimedBy: userId,
       timestamp: Date.now()
     };
 
     try {
       await setDoc(doc(db, 'tiles', String(idx)), newTile);
+      setWhisper(`#${idx} CLAIMED`);
+      setClaimIdx(null);
     } catch (err) {
-      console.warn('Firestore write failed', err);
-      setWhisper('SAVE FAILED — RETRY');
-      return;
+      console.error(err);
+      setWhisper('SAVE FAILED—RETRY');
     }
-
-    // Optimistically update locally
-    const updated = [...tiles];
-    updated[idx] = newTile;
-    applyTiles(updated);
-    setMyIndex(idx);
-    setClaimIdx(null);
-    setWhisper(`#${idx} CLAIMED`);
   };
+
+  // ─── Render ────────────────────────────────────────────────
 
   return (
     <main style={styles.container}>
@@ -148,13 +137,13 @@ export default function Wall() {
         <div
           style={{
             ...styles.grid,
-            gridTemplateColumns: `repeat(${COLS}, ${styles.tile.width}px)`
+            gridTemplateColumns: `repeat(${COLS}, 24px)`
           }}
         >
-          {tiles.map((t,i) => (
+          {tiles.map((t, i) => (
             <div
               key={i}
-              onClick={() => handleClick(i)}
+              onClick={() => handleTileClick(i)}
               title={t ? `${t.label}: ${t.message}` : `Tile #${i}`}
               style={{
                 ...styles.tile,
@@ -171,7 +160,7 @@ export default function Wall() {
         </div>
       </div>
 
-      {/* ─── Claim Modal ───────────────────────── */}
+      {/* ─── Claim Modal ────────────────────────── */}
       {claimIdx !== null && (
         <div style={styles.modalOverlay}>
           <form onSubmit={submitClaim} style={styles.modalBox}>
@@ -181,26 +170,26 @@ export default function Wall() {
               maxLength={3}
               placeholder="Label (3 chars)"
               value={form.label}
-              onChange={e => setForm(f=>({ ...f, label: e.target.value }))}
+              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
               style={styles.input}
             />
             <input
               type="color"
               value={form.color}
-              onChange={e=>setForm(f=>({ ...f, color: e.target.value }))}
+              onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
               style={{ ...styles.input, width:'3rem', padding:0, marginLeft:'1rem' }}
             />
             <textarea
               maxLength={140}
               placeholder="Optional message (140 chars)"
               value={form.message}
-              onChange={e => setForm(f=>({ ...f, message: e.target.value }))}
+              onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
               style={styles.textarea}
             />
             <div style={styles.actions}>
               <button
                 type="button"
-                onClick={()=>setClaimIdx(null)}
+                onClick={() => setClaimIdx(null)}
                 style={styles.button}
               >
                 Cancel
@@ -217,24 +206,24 @@ export default function Wall() {
         </div>
       )}
 
-      {/* ─── View Modal ────────────────────────── */}
-      {viewData && (
+      {/* ─── View Modal ─────────────────────────── */}
+      {viewTile && (
         <div
           style={styles.modalOverlay}
-          onClick={()=>setViewData(null)}
+          onClick={() => setViewTile(null)}
         >
           <div
             style={styles.modalBox}
-            onClick={e=>e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
-            <h2>Tile #{viewData.index} — {viewData.label}</h2>
-            <p><strong>Message:</strong> {viewData.message || '—'}</p>
+            <h2>Tile #{viewTile.index} — {viewTile.label}</h2>
+            <p><strong>Message:</strong> {viewTile.message || '—'}</p>
             <p>
-              <strong>By:</strong> {viewData.claimedBy === userId ? 'You' : viewData.claimedBy}
+              <strong>By:</strong> {viewTile.claimedBy === userId ? 'You' : viewTile.claimedBy}
             </p>
             <button
               style={styles.button}
-              onClick={()=>setViewData(null)}
+              onClick={() => setViewTile(null)}
             >
               Close
             </button>
@@ -247,50 +236,78 @@ export default function Wall() {
 
 const styles = {
   container:    {
-    background:'#000', color:'#0f0', fontFamily:'monospace',
-    height:'100vh', padding:'1rem',
-    display:'flex', flexDirection:'column', alignItems:'center',
-    overflow:'hidden'
+    background: '#000',
+    color:      '#0f0',
+    fontFamily: 'monospace',
+    height:     '100vh',
+    padding:    '1rem',
+    display:    'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    overflow:   'hidden'
   },
-  title:        { margin:0, fontSize:'2rem' },
-  subtitle:     { marginBottom:'1rem' },
+  title:        { margin: 0, fontSize: '2rem' },
+  subtitle:     { marginBottom: '1rem' },
   gridWrapper:  {
-    flexGrow:1, overflow:'auto',
-    width:'100%', maxWidth:COLS*26
+    flexGrow: 1,
+    overflow: 'auto',
+    width:    '100%',
+    maxWidth: COLS * 26
   },
-  grid:         { display:'grid', gap:'2px', justifyContent:'center' },
+  grid:         { display: 'grid', gap: '2px', justifyContent: 'center' },
   tile:         {
-    width:24, height:24,
-    border:'1px solid #0f0',
-    display:'flex', alignItems:'center', justifyContent:'center',
-    fontSize:8, userSelect:'none'
+    width:  24,
+    height: 24,
+    border: '1px solid #0f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 8,
+    userSelect: 'none'
   },
   modalOverlay: {
-    position:'fixed', top:0,left:0,right:0,bottom:0,
-    background:'rgba(0,0,0,0.85)',
-    display:'flex', justifyContent:'center', alignItems:'center',
-    zIndex:1000
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.85)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000
   },
   modalBox:     {
-    background:'#000', color:'#0f0',
-    padding:'1rem', border:'1px solid #0f0',
-    width:'90%', maxWidth:360,
-    display:'flex', flexDirection:'column', gap:'0.75rem'
+    background: '#000',
+    color:      '#0f0',
+    padding:    '1rem',
+    border:     '1px solid #0f0',
+    width:      '90%',
+    maxWidth:   360,
+    display:    'flex',
+    flexDirection: 'column',
+    gap:        '0.75rem'
   },
   input:        {
-    background:'#111', color:'#0f0',
-    border:'1px solid #0f0', padding:'0.5rem',
-    fontFamily:'monospace'
+    background: '#111',
+    color:      '#0f0',
+    border:     '1px solid #0f0',
+    padding:    '0.5rem',
+    fontFamily: 'monospace'
   },
   textarea:     {
-    background:'#111', color:'#0f0',
-    border:'1px solid #0f0', padding:'0.5rem',
-    fontFamily:'monospace', height:60, resize:'none'
+    background: '#111',
+    color:      '#0f0',
+    border:     '1px solid #0f0',
+    padding:    '0.5rem',
+    fontFamily: 'monospace',
+    height:     60,
+    resize:     'none'
   },
-  actions:      { display:'flex', justifyContent:'space-between', marginTop:'0.5rem' },
+  actions:      { display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' },
   button:       {
-    background:'transparent', color:'#0f0',
-    border:'1px solid #0f0', padding:'0.4rem 1rem',
-    cursor:'pointer', fontFamily:'monospace'
+    background: 'transparent',
+    color:      '#0f0',
+    border:     '1px solid #0f0',
+    padding:    '0.4rem 1rem',
+    cursor:     'pointer',
+    fontFamily: 'monospace'
   }
 };

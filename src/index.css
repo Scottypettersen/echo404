@@ -1,126 +1,154 @@
 /* ───────────────────────────────────────────────────────────────────────── */
-/*                            Echo404 Global Styles                           */
+/*                           Echo404 CRT Terminal Theme                      */
 /* ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Typography */
-  --font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --line-height: 1.5;
-  --font-weight: 400;
+  /* Monospace + terminal colors */
+  --font-family: 'Courier New', Courier, monospace;
+  --bg-color: #000;
+  --text-color: #33ff33;
+  --dim-text: rgba(51, 255, 51, 0.6);
+  --scanline-color: rgba(0, 0, 0, 0.1);
 
-  /* Color scheme */
-  --text-color: rgba(255, 255, 255, 0.87);
-  --bg-color: #242424;
-
-  /* Accent */
-  --accent: #646cff;
-  --accent-hover: #535bf2;
-
-  /* UI elements */
-  --btn-bg: #1a1a1a;
-  --btn-radius: 8px;
-  --btn-padding: 0.6em 1.2em;
-
-  /* Tile */
-  --tile-border: #0f0;
-
-  /* Transitions */
-  --ease: 0.25s ease;
+  /* CRT glow */
+  --glow-color: rgba(51, 255, 51, 0.4);
+  --glow-strength: 2px;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  font-family: var(--font-family);
-  line-height: var(--line-height);
-  font-weight: var(--font-weight);
-  color-scheme: light dark;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
+/* full-screen black background */
+html, body {
   margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+  padding: 0;
+  width: 100%;
+  height: 100%;
   background-color: var(--bg-color);
   color: var(--text-color);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow-x: hidden;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: left;
+  overflow: hidden;
+  position: relative;
 }
 
+/* scanline overlay */
+body::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      var(--scanline-color) 2px,
+      var(--scanline-color) 4px
+    );
+  z-index: 1000;
+}
+
+/* subtle vignette */
+body::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: -10%; left: -10%; right: -10%; bottom: -10%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0,0,0,0.6) 100%
+  );
+  z-index: 999;
+}
+
+/* widespread glow effect */
+* {
+  text-shadow: 0 0 var(--glow-strength) var(--glow-color),
+               0 0 calc(var(--glow-strength) * 2) var(--glow-color);
+}
+
+/* Terminal headings */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-family);
+  font-weight: normal;
+  letter-spacing: 1px;
+  color: var(--text-color);
+}
+
+/* links appear dim, glow on hover */
 a {
-  font-weight: 500;
-  color: var(--accent);
+  color: var(--dim-text);
   text-decoration: none;
-  transition: color var(--ease);
+  transition: color 0.2s;
 }
 a:hover {
-  color: var(--accent-hover);
+  color: var(--text-color);
 }
 
+/* buttons as old-school text prompts */
 button {
-  font-family: inherit;
-  font-size: 1em;
-  font-weight: 500;
-  border-radius: var(--btn-radius);
-  border: 1px solid transparent;
-  padding: var(--btn-padding);
-  background-color: var(--btn-bg);
+  font-family: var(--font-family);
+  font-size: 1rem;
   color: var(--text-color);
+  background: transparent;
+  border: 1px solid var(--text-color);
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
-  transition: border-color var(--ease);
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s;
 }
 button:hover {
-  border-color: var(--accent);
-}
-button:focus {
-  outline: 4px auto -webkit-focus-ring-color;
+  background: var(--text-color);
+  color: var(--bg-color);
 }
 
-/* Headings */
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-  margin: 0;
+/* inputs & textareas */
+input, textarea {
+  background: transparent;
+  border: 1px solid var(--dim-text);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  padding: 0.4rem;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+input:focus, textarea:focus {
+  border-color: var(--text-color);
 }
 
-/* ───────────────────────────────────────────────────────────────────────── */
-/*                             Keyframe Animations                          */
-/* ───────────────────────────────────────────────────────────────────────── */
-
-@keyframes fadeInOut {
-  0%   { opacity: 0; transform: translateX(-50%) scale(0.9); }
-  10%  { opacity: 1; transform: translateX(-50%) scale(1); }
-  90%  { opacity: 1; }
-  100% { opacity: 0; transform: translateX(-50%) scale(1); }
+/* scrollbars (WebKit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--dim-text);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* keyframe “cursor blink” */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
-@keyframes typeIn {
-  to { opacity: 1; }
+/* terminal cursor */
+.cursor {
+  display: inline-block;
+  width: 0.6ch;
+  background: var(--text-color);
+  animation: blink 1s steps(1) infinite;
 }
 
-/* ───────────────────────────────────────────────────────────────────────── */
-/*                             Light / Dark Mode                            */
-/* ───────────────────────────────────────────────────────────────────────── */
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --text-color: #213547;
-    --bg-color: #ffffff;
-    --accent-hover: #747bff;
-    --btn-bg: #f9f9f9;
-  }
+/* responsive text scaling */
+@media (max-width: 600px) {
+  html { font-size: 14px; }
 }

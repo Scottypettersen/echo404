@@ -1,24 +1,7 @@
 // src/App.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-<<<<<<< HEAD
 import Whisper from './components/Whisper';
-
-import Access from './pages/Access';
-import Access2 from './pages/Access2';
-import Access3 from './pages/Access3';
-import AccessDenied from './pages/AccessDenied';
-import CoreDump from './pages/CoreDump';
-import Glitch from './pages/Glitch';
-import Puzzle from './pages/Puzzle';
-import Recovery1 from './pages/Recovery1';
-import Trace from './pages/Trace';
-import Unlock from './pages/Unlock';
-import WallGate from './pages/WallGate';
-import NotFound from './pages/NotFound';
-
-export default function App() {
-=======
 
 // Core narrative flow
 import Trace from './pages/Trace';
@@ -28,19 +11,17 @@ import Unlock from './pages/Unlock';
 import Puzzle from './pages/Puzzle';
 
 // Puzzle paths
-import Access from './pages/Access';       // Puzzle 1: Quote
-import Access2 from './pages/Access2';     // Puzzle 2: Magic phrase
-import Access3 from './pages/Access3';     // Puzzle 3: Tile rearrange
+import Access from './pages/Access';
+import Access2 from './pages/Access2';
+import Access3 from './pages/Access3';
 
 // Branches and errors
 import Glitch from './pages/Glitch';
 import AccessDenied from './pages/AccessDenied';
-import NotFound from './pages/NotFound';
 import CoreDump from './pages/CoreDump';
+import NotFound from './pages/NotFound';
 
-
-function App() {
->>>>>>> parent of b7caf80 (whisper?)
+export default function App() {
   return (
     <div style={styles.app}>
       {/* Global echo whisper overlay */}

@@ -9,11 +9,12 @@ import {
 import { db } from '../firebase';
 import { useEcho } from '../context/EchoContext';
 
-const ROWS = 25;
-const COLS = 40;
-const TOTAL = ROWS * COLS;
+const ROWS   = 25;
+const COLS   = 40;
+const TOTAL  = ROWS * COLS;
 const LS_KEY = 'echo-wall-tiles';
 
+// Generate or reuse a per-browser UUID
 function getUserId() {
   let id = localStorage.getItem('echoUserId');
   if (!id) {
@@ -27,7 +28,7 @@ export default function Wall() {
   const { setWhisper } = useEcho();
   const userId = getUserId();
 
-  // 1) Load initial grid from localStorage (or blank)
+  // 1️⃣ Load saved grid from localStorage (or blank)
   const [tiles, setTiles] = useState(() => {
     const stored = localStorage.getItem(LS_KEY);
     return stored
@@ -35,10 +36,11 @@ export default function Wall() {
       : Array(TOTAL).fill(null);
   });
 
-  // which tile *you* claimed (null = not yet)
-  const [myIndex, setMyIndex] = useState(
-    tiles.findIndex(t => t?.claimedBy === userId) || null
-  );
+  // 2️⃣ Which tile *you* claimed? (null == none yet)
+  const [myIndex, setMyIndex] = useState(() => {
+    const idx = tiles.findIndex(t => t?.claimedBy === userId);
+    return idx >= 0 ? idx : null;
+  });
 
   // UI state
   const [claimIdx, setClaimIdx] = useState(null);
@@ -46,22 +48,20 @@ export default function Wall() {
   const [form, setForm] = useState({ label: '', color: '#0f0', message: '' });
   const labelRef = useRef();
 
-  // Helper to persist both state & localStorage
-  const applyNewTiles = updated => {
+  // Helper: persist to both React state + localStorage
+  const applyTiles = updated => {
     setTiles(updated);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
   };
 
-  // 2) Subscribe real-time to Firestore
+  // 3️⃣ Real-time subscription to Firestore
   useEffect(() => {
     setWhisper('ECHO WALL LOADED');
     const unsub = onSnapshot(
       collection(db, 'tiles'),
       snap => {
-        // rebuild array
         const updated = Array(TOTAL).fill(null);
         let foundMine = null;
-
         snap.forEach(d => {
           const data = d.data();
           updated[data.index] = data;
@@ -69,8 +69,7 @@ export default function Wall() {
             foundMine = data.index;
           }
         });
-
-        applyNewTiles(updated);
+        applyTiles(updated);
         setMyIndex(foundMine);
         if (foundMine !== null) {
           setWhisper(`YOU ALREADY CLAIMED #${foundMine}`);
@@ -84,7 +83,7 @@ export default function Wall() {
     return () => unsub();
   }, [setWhisper, userId]);
 
-  // 3) Click handler
+  // 4️⃣ Click handler
   const handleClick = i => {
     const tile = tiles[i];
     if (tile) {
@@ -92,6 +91,7 @@ export default function Wall() {
       setWhisper(`VIEWING #${i}`);
       return;
     }
+    // Only allow one claim ever
     if (myIndex !== null) {
       setWhisper(`ONE TILE ONLY (#${myIndex})`);
       return;
@@ -99,10 +99,11 @@ export default function Wall() {
     setClaimIdx(i);
     setForm({ label: '', color: '#0f0', message: '' });
     setWhisper(`CLAIMING #${i}`);
+    // Focus the label input
     setTimeout(() => labelRef.current?.focus(), 100);
   };
 
-  // 4) Submit claim
+  // 5️⃣ Submit new claim
   const submitClaim = async e => {
     e.preventDefault();
     if (!form.label.trim()) {
@@ -119,7 +120,6 @@ export default function Wall() {
       timestamp: Date.now()
     };
 
-    // 4a) Write to Firestore
     try {
       await setDoc(doc(db, 'tiles', String(idx)), newTile);
     } catch (err) {
@@ -128,10 +128,10 @@ export default function Wall() {
       return;
     }
 
-    // 4b) Optimistically update localStorage & state
+    // Optimistically update locally
     const updated = [...tiles];
     updated[idx] = newTile;
-    applyNewTiles(updated);
+    applyTiles(updated);
     setMyIndex(idx);
     setClaimIdx(null);
     setWhisper(`#${idx} CLAIMED`);
@@ -160,7 +160,9 @@ export default function Wall() {
                 ...styles.tile,
                 backgroundColor: t ? t.color : '#111',
                 color:           t ? '#000' : 'transparent',
-                cursor:          t ? 'pointer' : (myIndex===null ? 'pointer' : 'not-allowed')
+                cursor:          t
+                  ? 'pointer'
+                  : (myIndex === null ? 'pointer' : 'not-allowed')
               }}
             >
               {t?.label}
@@ -169,7 +171,7 @@ export default function Wall() {
         </div>
       </div>
 
-      {/* ─── Claim Modal ────────────────────────── */}
+      {/* ─── Claim Modal ───────────────────────── */}
       {claimIdx !== null && (
         <div style={styles.modalOverlay}>
           <form onSubmit={submitClaim} style={styles.modalBox}>
@@ -200,12 +202,16 @@ export default function Wall() {
                 type="button"
                 onClick={()=>setClaimIdx(null)}
                 style={styles.button}
-              >Cancel</button>
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={!form.label.trim()}
                 style={styles.button}
-              >Claim</button>
+              >
+                Claim
+              </button>
             </div>
           </form>
         </div>
@@ -229,7 +235,9 @@ export default function Wall() {
             <button
               style={styles.button}
               onClick={()=>setViewData(null)}
-            >Close</button>
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -238,16 +246,51 @@ export default function Wall() {
 }
 
 const styles = {
-  container:    { background:'#000', color:'#0f0', fontFamily:'monospace', height:'100vh', padding:'1rem', display:'flex', flexDirection:'column', alignItems:'center', overflow:'hidden' },
+  container:    {
+    background:'#000', color:'#0f0', fontFamily:'monospace',
+    height:'100vh', padding:'1rem',
+    display:'flex', flexDirection:'column', alignItems:'center',
+    overflow:'hidden'
+  },
   title:        { margin:0, fontSize:'2rem' },
   subtitle:     { marginBottom:'1rem' },
-  gridWrapper:  { flexGrow:1, overflow:'auto', width:'100%', maxWidth:COLS*26 },
+  gridWrapper:  {
+    flexGrow:1, overflow:'auto',
+    width:'100%', maxWidth:COLS*26
+  },
   grid:         { display:'grid', gap:'2px', justifyContent:'center' },
-  tile:         { width:24, height:24, border:'1px solid #0f0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, userSelect:'none' },
-  modalOverlay: { position:'fixed', top:0,left:0,right:0,bottom:0, background:'rgba(0,0,0,0.85)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
-  modalBox:     { background:'#000', color:'#0f0', padding:'1rem', border:'1px solid #0f0', width:'90%', maxWidth:360, display:'flex', flexDirection:'column', gap:'0.75rem' },
-  input:        { background:'#111', color:'#0f0', border:'1px solid #0f0', padding:'0.5rem', fontFamily:'monospace' },
-  textarea:     { background:'#111', color:'#0f0', border:'1px solid #0f0', padding:'0.5rem', fontFamily:'monospace', height:60, resize:'none' },
+  tile:         {
+    width:24, height:24,
+    border:'1px solid #0f0',
+    display:'flex', alignItems:'center', justifyContent:'center',
+    fontSize:8, userSelect:'none'
+  },
+  modalOverlay: {
+    position:'fixed', top:0,left:0,right:0,bottom:0,
+    background:'rgba(0,0,0,0.85)',
+    display:'flex', justifyContent:'center', alignItems:'center',
+    zIndex:1000
+  },
+  modalBox:     {
+    background:'#000', color:'#0f0',
+    padding:'1rem', border:'1px solid #0f0',
+    width:'90%', maxWidth:360,
+    display:'flex', flexDirection:'column', gap:'0.75rem'
+  },
+  input:        {
+    background:'#111', color:'#0f0',
+    border:'1px solid #0f0', padding:'0.5rem',
+    fontFamily:'monospace'
+  },
+  textarea:     {
+    background:'#111', color:'#0f0',
+    border:'1px solid #0f0', padding:'0.5rem',
+    fontFamily:'monospace', height:60, resize:'none'
+  },
   actions:      { display:'flex', justifyContent:'space-between', marginTop:'0.5rem' },
-  button:       { background:'transparent', color:'#0f0', border:'1px solid #0f0', padding:'0.4rem 1rem', cursor:'pointer', fontFamily:'monospace' },
+  button:       {
+    background:'transparent', color:'#0f0',
+    border:'1px solid #0f0', padding:'0.4rem 1rem',
+    cursor:'pointer', fontFamily:'monospace'
+  }
 };

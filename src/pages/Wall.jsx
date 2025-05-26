@@ -1,22 +1,20 @@
 // src/pages/Wall.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   collection,
   onSnapshot,
   doc,
-  setDoc,
-  query,
-  where,
-  getDocs
+  setDoc
 } from 'firebase/firestore';
-import { db } from '../firebase';            // ← your firebase init
+import { db } from '../firebase';           // ← your firebase init
 import { useEcho } from '../context/EchoContext';
 
+// grid size
 const ROWS = 25;
 const COLS = 40;
 const TOTAL = ROWS * COLS;
 
-// Utility to give each browser a unique ID
+// generate or load a persistent user ID
 function getUserId() {
   let id = localStorage.getItem('echoUserId');
   if (!id) {
@@ -28,88 +26,130 @@ function getUserId() {
 
 export default function Wall() {
   const { setWhisper } = useEcho();
-  const [grid, setGrid] = useState(Array(TOTAL).fill(null));
-  const [hasClaimed, setHasClaimed] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(null);
-  const [form, setForm] = useState({ label: '', color: '#0f0', message: '' });
   const userId = getUserId();
 
-  // 1️⃣ Subscribe to Firestore 'tiles' collection
+  // state for all tiles (null = empty, or object = claimed)
+  const [tiles, setTiles] = useState(Array(TOTAL).fill(null));
+
+  // index of THE tile *you* claimed, or null
+  const [myIndex, setMyIndex] = useState(null);
+
+  // which index we’re currently filling out
+  const [claimIndex, setClaimIndex] = useState(null);
+
+  // data for the claim form
+  const [form, setForm] = useState({
+    label: '',
+    color: '#0f0',
+    message: ''
+  });
+
+  // data for viewing a claimed tile
+  const [viewData, setViewData] = useState(null);
+
+  const labelInputRef = useRef(null);
+
+  //
+  // 1️⃣ Subscribe to real-time Firestore updates
+  //
   useEffect(() => {
     setWhisper('ECHO WALL LOADED');
-    const tilesCol = collection(db, 'tiles');
-    const unsub = onSnapshot(tilesCol, snapshot => {
+    const unsub = onSnapshot(collection(db, 'tiles'), snapshot => {
+      // build a new array of length TOTAL
       const updated = Array(TOTAL).fill(null);
-      snapshot.forEach(doc => {
-        const data = doc.data();
+      let foundMine = null;
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         updated[data.index] = data;
+        if (data.claimedBy === userId) {
+          foundMine = data.index;
+        }
       });
-      setGrid(updated);
-    });
-    return unsub;
-  }, [setWhisper]);
 
-  // 2️⃣ Check if this user already claimed a tile
-  useEffect(() => {
-    (async () => {
-      const q = query(
-        collection(db, 'tiles'),
-        where('claimedBy', '==', userId)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        setHasClaimed(true);
-        setWhisper('YOU HAVE A TILE');
+      setTiles(updated);
+      setMyIndex(foundMine);
+      if (foundMine !== null) {
+        setWhisper(`YOU ALREADY CLAIMED #${foundMine}`);
       }
-    })();
-  }, [userId, setWhisper]);
+    });
 
-  // 3️⃣ When you click a tile
-  const handleTileClick = (idx) => {
-    if (hasClaimed) {
-      setWhisper('ONLY ONE TILE ALLOWED');
+    return () => unsub();
+  }, [setWhisper, userId]);
+
+  //
+  // 2️⃣ Handle tile clicks
+  //
+  const handleTileClick = idx => {
+    const tile = tiles[idx];
+
+    if (tile) {
+      // Open view-modal
+      setViewData({ ...tile, index: idx });
+      setWhisper(`VIEWING TILE #${idx}`);
       return;
     }
-    if (!grid[idx]) {
-      setActiveIndex(idx);
-      setWhisper(`CLAIMING TILE ${idx}`);
+
+    if (myIndex !== null) {
+      // you’ve already claimed
+      setWhisper(`ONLY ONE TILE ALLOWED (#${myIndex})`);
+      return;
     }
+
+    // open claim-modal
+    setClaimIndex(idx);
+    setForm({ label: '', color: '#0f0', message: '' });
+    setWhisper(`CLAIMING TILE #${idx}`);
   };
 
-  // 4️⃣ Submit the claim to Firestore
-  const submitClaim = async () => {
-    if (!form.label.trim()) return;
-    const tileRef = doc(db, 'tiles', String(activeIndex));
+  //
+  // 3️⃣ Submit a new claim
+  //
+  const submitClaim = async e => {
+    e.preventDefault();
+    if (!form.label.trim()) {
+      return labelInputRef.current.focus();
+    }
+
+    const tileRef = doc(db, 'tiles', String(claimIndex));
     await setDoc(tileRef, {
-      index: activeIndex,
-      label: form.label.slice(0,3).toUpperCase(),
-      color: form.color,
-      message: form.message.slice(0,140),
-      claimedBy: userId
+      index:      claimIndex,
+      label:      form.label.slice(0,3).toUpperCase(),
+      color:      form.color,
+      message:    form.message.slice(0,140),
+      claimedBy:  userId,
+      timestamp:  Date.now()
     });
-    setHasClaimed(true);
-    setForm({ label: '', color: '#0f0', message: '' });
-    setActiveIndex(null);
-    setWhisper('TRACE RECORDED');
+
+    setClaimIndex(null);
+    setWhisper(`TILE #${claimIndex} CLAIMED`);
   };
 
   return (
     <main style={styles.container} role="region" aria-label="Echo Wall">
       <h1 style={styles.title}>Echo Wall</h1>
-      <p style={styles.subtitle}>Click an empty tile to leave your trace — everyone sees it.</p>
+      <p style={styles.subtitle}>
+        Click an empty square to leave your trace — everyone sees it.
+      </p>
 
       <div style={styles.gridWrapper}>
-        <div style={{ ...styles.grid, gridTemplateColumns: `repeat(${COLS}, 24px)` }}>
-          {grid.map((tile, i) => (
+        <div
+          style={{
+            ...styles.grid,
+            gridTemplateColumns: `repeat(${COLS}, ${styles.tile.width}px)`
+          }}
+        >
+          {tiles.map((tile, i) => (
             <div
               key={i}
               onClick={() => handleTileClick(i)}
-              title={tile ? tile.label : `Tile #${i}`}
+              title={tile ? `${tile.label}: ${tile.message}` : `Tile #${i}`}
               style={{
                 ...styles.tile,
                 backgroundColor: tile ? tile.color : '#111',
-                color: tile ? '#000' : 'transparent',
-                cursor: tile || hasClaimed ? 'not-allowed' : 'pointer',
+                color:           tile ? '#000' : 'transparent',
+                cursor:          tile ? 'pointer' : (myIndex !== null ? 'not-allowed' : 'pointer'),
+                opacity:         tile && tile.index === myIndex ? 1 : 1
               }}
             >
               {tile?.label}
@@ -118,40 +158,71 @@ export default function Wall() {
         </div>
       </div>
 
-      {/* Modal claim form */}
-      {activeIndex !== null && (
+      {/* ═══════════════ Claim Modal ═══════════════ */}
+      {claimIndex !== null && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modalBox}>
-            <h2>Claim Tile #{activeIndex}</h2>
+          <form onSubmit={submitClaim} style={styles.modalBox}>
+            <h2>Claim Tile #{claimIndex}</h2>
+
             <input
+              ref={labelInputRef}
               type="text"
-              placeholder="Label (3 chars)"
               maxLength={3}
+              placeholder="Label (3 chars)"
               value={form.label}
               onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
               style={styles.input}
             />
+
             <input
               type="color"
+              aria-label="Color"
               value={form.color}
               onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
-              style={{ marginLeft: '1rem' }}
+              style={{ ...styles.input, width: '3rem', padding: 0, marginLeft: '1rem' }}
             />
+
             <textarea
-              placeholder="Optional message (140 chars)"
               maxLength={140}
+              placeholder="Optional message (140 chars)"
               value={form.message}
               onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
               style={styles.textarea}
             />
-            <div style={styles.modalActions}>
-              <button onClick={() => setActiveIndex(null)} style={styles.button}>
+
+            <div style={styles.actions}>
+              <button
+                type="button"
+                onClick={() => setClaimIndex(null)}
+                style={styles.button}
+              >
                 Cancel
               </button>
-              <button onClick={submitClaim} style={styles.button}>
+              <button
+                type="submit"
+                disabled={!form.label.trim()}
+                style={styles.button}
+              >
                 Claim
               </button>
             </div>
+          </form>
+        </div>
+      )}
+
+      {/* ═══════════════ View Modal ═══════════════ */}
+      {viewData && (
+        <div style={styles.modalOverlay} onClick={() => setViewData(null)}>
+          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+            <h2>Tile #{viewData.index} — {viewData.label}</h2>
+            <p><strong>Message:</strong> {viewData.message || '—'}</p>
+            <p><strong>By:</strong> {viewData.claimedBy === userId ? 'You' : viewData.claimedBy}</p>
+            <button
+              onClick={() => setViewData(null)}
+              style={styles.button}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -161,83 +232,78 @@ export default function Wall() {
 
 const styles = {
   container: {
-    background: '#000',
-    color: '#0f0',
-    fontFamily: 'monospace',
-    height: '100vh',
-    padding: '2rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
+    background:   '#000',
+    color:        '#0f0',
+    fontFamily:   'monospace',
+    height:       '100vh',
+    padding:      '1.5rem',
+    display:      'flex',
+    flexDirection:'column',
+    alignItems:   'center',
+    overflow:     'hidden'
   },
-  title: { fontSize: '2rem', margin: 0 },
+  title:    { margin: 0, fontSize: '2rem' },
   subtitle: { marginBottom: '1rem' },
   gridWrapper: {
-    flexGrow: 1,
-    overflow: 'auto',
-    width: '100%',
-    maxWidth: COLS * 26
+    flexGrow:   1,
+    overflow:   'auto',
+    width:      '100%',
+    maxWidth:   COLS * 26
   },
-  grid: {
-    display: 'grid',
-    gap: '2px',
-    justifyContent: 'center'
-  },
-  tile: {
-    width: 24,
-    height: 24,
-    border: '1px solid #0f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 8,
-    userSelect: 'none'
+  grid:     { display: 'grid', gap: '2px', justifyContent: 'center' },
+  tile:     {
+    width:     24,
+    height:    24,
+    border:    '1px solid #0f0',
+    display:   'flex',
+    alignItems:'center',
+    justifyContent:'center',
+    fontSize:  8,
+    userSelect:'none'
   },
   modalOverlay: {
-    position: 'fixed',
+    position:    'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10
+    background:  'rgba(0,0,0,0.85)',
+    display:     'flex',
+    justifyContent:'center',
+    alignItems:  'center',
+    zIndex:      1000
   },
-  modalBox: {
-    backgroundColor: '#000',
-    color: '#0f0',
-    padding: '1.5rem',
-    border: '1px solid #0f0',
-    width: 320,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem'
+  modalBox:    {
+    background:  '#000',
+    color:       '#0f0',
+    padding:     '1rem',
+    border:      '1px solid #0f0',
+    width:       '90%',
+    maxWidth:    360,
+    display:     'flex',
+    flexDirection:'column',
+    gap:         '0.75rem'
   },
-  input: {
-    background: '#111',
-    color: '#0f0',
-    border: '1px solid #0f0',
-    padding: '0.5rem',
-    fontFamily: 'monospace'
+  input:       {
+    background:  '#111',
+    color:       '#0f0',
+    border:      '1px solid #0f0',
+    padding:     '0.5rem',
+    fontFamily:  'monospace'
   },
-  textarea: {
-    background: '#111',
-    color: '#0f0',
-    border: '1px solid #0f0',
-    padding: '0.5rem',
-    fontFamily: 'monospace',
-    height: 60,
-    resize: 'none'
+  textarea:    {
+    background:  '#111',
+    color:       '#0f0',
+    border:      '1px solid #0f0',
+    padding:     '0.5rem',
+    fontFamily:  'monospace',
+    height:      60,
+    resize:      'none'
   },
-  modalActions: {
-    display: 'flex',
-    justifyContent: 'space-between'
-  },
-  button: {
-    background: 'transparent',
-    color: '#0f0',
-    border: '1px solid #0f0',
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    fontFamily: 'monospace'
+  actions:     { display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' },
+  button:      {
+    background:  'transparent',
+    color:       '#0f0',
+    border:      '1px solid #0f0',
+    padding:     '0.4rem 1rem',
+    cursor:      'pointer',
+    fontFamily:  'monospace'
   }
 };

@@ -1,10 +1,11 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { getFirestore }   from "firebase/firestore";
+import { getFirestore }  from "firebase/firestore";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
-// ← copy/paste your own values here
+// ← your web app config from the console
 const firebaseConfig = {
-  apiKey: "AIzaSyDr3vcP2IsUL8KFVxizgJCZTLTm4OiPbAw",
+  apiKey: "AIza…",
   authDomain: "echo404-8f287.firebaseapp.com",
   projectId: "echo404-8f287",
   storageBucket: "echo404-8f287.appspot.com",
@@ -13,4 +14,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db   = getFirestore(app);
+export const auth = getAuth(app);
+
+// Ensure every user is signed in anonymously (so we get a stable uid)
+signInAnonymously(auth).catch(console.error);

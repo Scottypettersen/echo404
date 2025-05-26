@@ -1,7 +1,5 @@
 {
   "projects": {
-    "Wallrules": "echo404-8f287"
-  },
-  "targets": {},
-  "etags": {}
+    "default": "echo404-8f287"
+  }
 }

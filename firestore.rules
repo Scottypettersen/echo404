@@ -1,24 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // everyone can list & get any tile
+    // everyone can read the tiles collection
     match /tiles/{tileId} {
       allow read: if true;
 
-      // only allow a *new* tile doc to be written by its claimant
-      allow create: if
-        request.auth != null
-        && request.auth.uid == request.resource.data.claimedBy
-        && !exists(/databases/$(database)/documents/tiles/$(tileId));
+      // only an authenticated user whose UID matches claimedBy,
+      // and only if that document doesn't yet exist
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.claimedBy
+                    && !exists(/databases/$(database)/documents/tiles/$(tileId));
 
-      // never allow clients to modify or delete
+      // no updates or deletes from clients
       allow update, delete: if false;
-    }
-
-    // lock down everything else
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }

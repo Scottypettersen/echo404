@@ -6,15 +6,14 @@ import {
   doc,
   setDoc
 } from 'firebase/firestore';
-import { db } from '../firebase';           // ← your firebase init
+import { db } from '../firebase';
 import { useEcho } from '../context/EchoContext';
 
-// grid size
 const ROWS = 25;
 const COLS = 40;
 const TOTAL = ROWS * COLS;
+const LS_KEY = 'echo-wall-tiles';
 
-// generate or load a persistent user ID
 function getUserId() {
   let id = localStorage.getItem('echoUserId');
   if (!id) {
@@ -28,105 +27,118 @@ export default function Wall() {
   const { setWhisper } = useEcho();
   const userId = getUserId();
 
-  // state for all tiles (null = empty, or object = claimed)
-  const [tiles, setTiles] = useState(Array(TOTAL).fill(null));
-
-  // index of THE tile *you* claimed, or null
-  const [myIndex, setMyIndex] = useState(null);
-
-  // which index we’re currently filling out
-  const [claimIndex, setClaimIndex] = useState(null);
-
-  // data for the claim form
-  const [form, setForm] = useState({
-    label: '',
-    color: '#0f0',
-    message: ''
+  // 1) Load initial grid from localStorage (or blank)
+  const [tiles, setTiles] = useState(() => {
+    const stored = localStorage.getItem(LS_KEY);
+    return stored
+      ? JSON.parse(stored)
+      : Array(TOTAL).fill(null);
   });
 
-  // data for viewing a claimed tile
+  // which tile *you* claimed (null = not yet)
+  const [myIndex, setMyIndex] = useState(
+    tiles.findIndex(t => t?.claimedBy === userId) || null
+  );
+
+  // UI state
+  const [claimIdx, setClaimIdx] = useState(null);
   const [viewData, setViewData] = useState(null);
+  const [form, setForm] = useState({ label: '', color: '#0f0', message: '' });
+  const labelRef = useRef();
 
-  const labelInputRef = useRef(null);
+  // Helper to persist both state & localStorage
+  const applyNewTiles = updated => {
+    setTiles(updated);
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+  };
 
-  //
-  // 1️⃣ Subscribe to real-time Firestore updates
-  //
+  // 2) Subscribe real-time to Firestore
   useEffect(() => {
     setWhisper('ECHO WALL LOADED');
-    const unsub = onSnapshot(collection(db, 'tiles'), snapshot => {
-      // build a new array of length TOTAL
-      const updated = Array(TOTAL).fill(null);
-      let foundMine = null;
+    const unsub = onSnapshot(
+      collection(db, 'tiles'),
+      snap => {
+        // rebuild array
+        const updated = Array(TOTAL).fill(null);
+        let foundMine = null;
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        updated[data.index] = data;
-        if (data.claimedBy === userId) {
-          foundMine = data.index;
+        snap.forEach(d => {
+          const data = d.data();
+          updated[data.index] = data;
+          if (data.claimedBy === userId) {
+            foundMine = data.index;
+          }
+        });
+
+        applyNewTiles(updated);
+        setMyIndex(foundMine);
+        if (foundMine !== null) {
+          setWhisper(`YOU ALREADY CLAIMED #${foundMine}`);
         }
-      });
-
-      setTiles(updated);
-      setMyIndex(foundMine);
-      if (foundMine !== null) {
-        setWhisper(`YOU ALREADY CLAIMED #${foundMine}`);
+      },
+      err => {
+        console.warn('Firestore subscribe failed', err);
+        setWhisper('OFFLINE MODE');
       }
-    });
-
+    );
     return () => unsub();
   }, [setWhisper, userId]);
 
-  //
-  // 2️⃣ Handle tile clicks
-  //
-  const handleTileClick = idx => {
-    const tile = tiles[idx];
-
+  // 3) Click handler
+  const handleClick = i => {
+    const tile = tiles[i];
     if (tile) {
-      // Open view-modal
-      setViewData({ ...tile, index: idx });
-      setWhisper(`VIEWING TILE #${idx}`);
+      setViewData({ ...tile, index: i });
+      setWhisper(`VIEWING #${i}`);
       return;
     }
-
     if (myIndex !== null) {
-      // you’ve already claimed
-      setWhisper(`ONLY ONE TILE ALLOWED (#${myIndex})`);
+      setWhisper(`ONE TILE ONLY (#${myIndex})`);
       return;
     }
-
-    // open claim-modal
-    setClaimIndex(idx);
+    setClaimIdx(i);
     setForm({ label: '', color: '#0f0', message: '' });
-    setWhisper(`CLAIMING TILE #${idx}`);
+    setWhisper(`CLAIMING #${i}`);
+    setTimeout(() => labelRef.current?.focus(), 100);
   };
 
-  //
-  // 3️⃣ Submit a new claim
-  //
+  // 4) Submit claim
   const submitClaim = async e => {
     e.preventDefault();
     if (!form.label.trim()) {
-      return labelInputRef.current.focus();
+      return labelRef.current.focus();
     }
 
-    const tileRef = doc(db, 'tiles', String(claimIndex));
-    await setDoc(tileRef, {
-      index:      claimIndex,
-      label:      form.label.slice(0,3).toUpperCase(),
-      color:      form.color,
-      message:    form.message.slice(0,140),
-      claimedBy:  userId,
-      timestamp:  Date.now()
-    });
+    const idx = claimIdx;
+    const newTile = {
+      index:     idx,
+      label:     form.label.slice(0,3).toUpperCase(),
+      color:     form.color,
+      message:   form.message.slice(0,140),
+      claimedBy: userId,
+      timestamp: Date.now()
+    };
 
-    setClaimIndex(null);
-    setWhisper(`TILE #${claimIndex} CLAIMED`);
+    // 4a) Write to Firestore
+    try {
+      await setDoc(doc(db, 'tiles', String(idx)), newTile);
+    } catch (err) {
+      console.warn('Firestore write failed', err);
+      setWhisper('SAVE FAILED — RETRY');
+      return;
+    }
+
+    // 4b) Optimistically update localStorage & state
+    const updated = [...tiles];
+    updated[idx] = newTile;
+    applyNewTiles(updated);
+    setMyIndex(idx);
+    setClaimIdx(null);
+    setWhisper(`#${idx} CLAIMED`);
   };
 
   return (
-    <main style={styles.container} role="region" aria-label="Echo Wall">
+    <main style={styles.container}>
       <h1 style={styles.title}>Echo Wall</h1>
       <p style={styles.subtitle}>
         Click an empty square to leave your trace — everyone sees it.
@@ -139,90 +151,85 @@ export default function Wall() {
             gridTemplateColumns: `repeat(${COLS}, ${styles.tile.width}px)`
           }}
         >
-          {tiles.map((tile, i) => (
+          {tiles.map((t,i) => (
             <div
               key={i}
-              onClick={() => handleTileClick(i)}
-              title={tile ? `${tile.label}: ${tile.message}` : `Tile #${i}`}
+              onClick={() => handleClick(i)}
+              title={t ? `${t.label}: ${t.message}` : `Tile #${i}`}
               style={{
                 ...styles.tile,
-                backgroundColor: tile ? tile.color : '#111',
-                color:           tile ? '#000' : 'transparent',
-                cursor:          tile ? 'pointer' : (myIndex !== null ? 'not-allowed' : 'pointer'),
-                opacity:         tile && tile.index === myIndex ? 1 : 1
+                backgroundColor: t ? t.color : '#111',
+                color:           t ? '#000' : 'transparent',
+                cursor:          t ? 'pointer' : (myIndex===null ? 'pointer' : 'not-allowed')
               }}
             >
-              {tile?.label}
+              {t?.label}
             </div>
           ))}
         </div>
       </div>
 
-      {/* ═══════════════ Claim Modal ═══════════════ */}
-      {claimIndex !== null && (
+      {/* ─── Claim Modal ────────────────────────── */}
+      {claimIdx !== null && (
         <div style={styles.modalOverlay}>
           <form onSubmit={submitClaim} style={styles.modalBox}>
-            <h2>Claim Tile #{claimIndex}</h2>
-
+            <h2>Claim Tile #{claimIdx}</h2>
             <input
-              ref={labelInputRef}
-              type="text"
+              ref={labelRef}
               maxLength={3}
               placeholder="Label (3 chars)"
               value={form.label}
-              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+              onChange={e => setForm(f=>({ ...f, label: e.target.value }))}
               style={styles.input}
             />
-
             <input
               type="color"
-              aria-label="Color"
               value={form.color}
-              onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
-              style={{ ...styles.input, width: '3rem', padding: 0, marginLeft: '1rem' }}
+              onChange={e=>setForm(f=>({ ...f, color: e.target.value }))}
+              style={{ ...styles.input, width:'3rem', padding:0, marginLeft:'1rem' }}
             />
-
             <textarea
               maxLength={140}
               placeholder="Optional message (140 chars)"
               value={form.message}
-              onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+              onChange={e => setForm(f=>({ ...f, message: e.target.value }))}
               style={styles.textarea}
             />
-
             <div style={styles.actions}>
               <button
                 type="button"
-                onClick={() => setClaimIndex(null)}
+                onClick={()=>setClaimIdx(null)}
                 style={styles.button}
-              >
-                Cancel
-              </button>
+              >Cancel</button>
               <button
                 type="submit"
                 disabled={!form.label.trim()}
                 style={styles.button}
-              >
-                Claim
-              </button>
+              >Claim</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* ═══════════════ View Modal ═══════════════ */}
+      {/* ─── View Modal ────────────────────────── */}
       {viewData && (
-        <div style={styles.modalOverlay} onClick={() => setViewData(null)}>
-          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+        <div
+          style={styles.modalOverlay}
+          onClick={()=>setViewData(null)}
+        >
+          <div
+            style={styles.modalBox}
+            onClick={e=>e.stopPropagation()}
+          >
             <h2>Tile #{viewData.index} — {viewData.label}</h2>
             <p><strong>Message:</strong> {viewData.message || '—'}</p>
-            <p><strong>By:</strong> {viewData.claimedBy === userId ? 'You' : viewData.claimedBy}</p>
+            <p>
+              <strong>By:</strong> {viewData.claimedBy === userId ? 'You' : viewData.claimedBy}
+            </p>
             <button
-              onClick={() => setViewData(null)}
               style={styles.button}
-            >
-              Close
-            </button>
+              onClick={()=>setViewData(null)}
+            >Close</button>
           </div>
         </div>
       )}
@@ -231,79 +238,16 @@ export default function Wall() {
 }
 
 const styles = {
-  container: {
-    background:   '#000',
-    color:        '#0f0',
-    fontFamily:   'monospace',
-    height:       '100vh',
-    padding:      '1.5rem',
-    display:      'flex',
-    flexDirection:'column',
-    alignItems:   'center',
-    overflow:     'hidden'
-  },
-  title:    { margin: 0, fontSize: '2rem' },
-  subtitle: { marginBottom: '1rem' },
-  gridWrapper: {
-    flexGrow:   1,
-    overflow:   'auto',
-    width:      '100%',
-    maxWidth:   COLS * 26
-  },
-  grid:     { display: 'grid', gap: '2px', justifyContent: 'center' },
-  tile:     {
-    width:     24,
-    height:    24,
-    border:    '1px solid #0f0',
-    display:   'flex',
-    alignItems:'center',
-    justifyContent:'center',
-    fontSize:  8,
-    userSelect:'none'
-  },
-  modalOverlay: {
-    position:    'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
-    background:  'rgba(0,0,0,0.85)',
-    display:     'flex',
-    justifyContent:'center',
-    alignItems:  'center',
-    zIndex:      1000
-  },
-  modalBox:    {
-    background:  '#000',
-    color:       '#0f0',
-    padding:     '1rem',
-    border:      '1px solid #0f0',
-    width:       '90%',
-    maxWidth:    360,
-    display:     'flex',
-    flexDirection:'column',
-    gap:         '0.75rem'
-  },
-  input:       {
-    background:  '#111',
-    color:       '#0f0',
-    border:      '1px solid #0f0',
-    padding:     '0.5rem',
-    fontFamily:  'monospace'
-  },
-  textarea:    {
-    background:  '#111',
-    color:       '#0f0',
-    border:      '1px solid #0f0',
-    padding:     '0.5rem',
-    fontFamily:  'monospace',
-    height:      60,
-    resize:      'none'
-  },
-  actions:     { display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' },
-  button:      {
-    background:  'transparent',
-    color:       '#0f0',
-    border:      '1px solid #0f0',
-    padding:     '0.4rem 1rem',
-    cursor:      'pointer',
-    fontFamily:  'monospace'
-  }
+  container:    { background:'#000', color:'#0f0', fontFamily:'monospace', height:'100vh', padding:'1rem', display:'flex', flexDirection:'column', alignItems:'center', overflow:'hidden' },
+  title:        { margin:0, fontSize:'2rem' },
+  subtitle:     { marginBottom:'1rem' },
+  gridWrapper:  { flexGrow:1, overflow:'auto', width:'100%', maxWidth:COLS*26 },
+  grid:         { display:'grid', gap:'2px', justifyContent:'center' },
+  tile:         { width:24, height:24, border:'1px solid #0f0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, userSelect:'none' },
+  modalOverlay: { position:'fixed', top:0,left:0,right:0,bottom:0, background:'rgba(0,0,0,0.85)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
+  modalBox:     { background:'#000', color:'#0f0', padding:'1rem', border:'1px solid #0f0', width:'90%', maxWidth:360, display:'flex', flexDirection:'column', gap:'0.75rem' },
+  input:        { background:'#111', color:'#0f0', border:'1px solid #0f0', padding:'0.5rem', fontFamily:'monospace' },
+  textarea:     { background:'#111', color:'#0f0', border:'1px solid #0f0', padding:'0.5rem', fontFamily:'monospace', height:60, resize:'none' },
+  actions:      { display:'flex', justifyContent:'space-between', marginTop:'0.5rem' },
+  button:       { background:'transparent', color:'#0f0', border:'1px solid #0f0', padding:'0.4rem 1rem', cursor:'pointer', fontFamily:'monospace' },
 };

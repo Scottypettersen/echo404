@@ -38,7 +38,8 @@ export default function App() {
         <Route path="/recovery-1" element={<Recovery1 />} />
         <Route path="/trace" element={<Trace />} />
         <Route path="/unlock" element={<Unlock />} />
-        <Route path="/wall-gate" element={<WallGate />} />
+        {/* Updated path: now matches navigate('/wall') */}
+        <Route path="/wall" element={<WallGate />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

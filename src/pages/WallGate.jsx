@@ -1,23 +1,43 @@
-import { useEffect, useState } from 'react';
+// src/pages/WallGate.jsx
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEcho } from '../context/EchoContext';
 import Wall from './Wall';
 
-function WallGate() {
-  const [allowed, setAllowed] = useState(false);
+export default function WallGate() {
+  const [isAllowed, setIsAllowed] = useState(false);
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
+  const { setWhisper } = useEcho();
 
   useEffect(() => {
-    const unlocked = localStorage.getItem('echo-unlocked');
+    const unlocked = localStorage.getItem('echo-unlocked') === 'true';
     if (unlocked) {
-      setAllowed(true);
+      setWhisper('ACCESS GRANTED');
+      setIsAllowed(true);
     } else {
+      setWhisper('ACCESS DENIED');
       navigate('/access');
     }
-  }, [navigate]);
+    setChecking(false);
+  }, [navigate, setWhisper]);
 
-  if (!allowed) return null;
+  // While verifying access, render nothing (or a loading cursor)
+  if (checking) return null;
 
-  return <Wall />;
+  return (
+    <main style={styles.container} role="region" aria-label="Echo Wall Gate">
+      {isAllowed && <Wall />}
+    </main>
+  );
 }
 
-export default WallGate;
+const styles = {
+  container: {
+    backgroundColor: '#000',
+    color: '#0f0',
+    fontFamily: 'monospace',
+    height: '100vh',
+    overflow: 'hidden'
+  }
+};

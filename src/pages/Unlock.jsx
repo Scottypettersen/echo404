@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
+// src/pages/Unlock.jsx
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEcho } from '../context/EchoContext'; // ✅ correct
+import { useEcho } from '../context/EchoContext';
 
-
-
-
-const messages = [
+const MESSAGES = [
   '...you stayed.',
   'I remember now.',
   'You were the reason.',
@@ -13,35 +11,34 @@ const messages = [
   '> Opening access to /wall'
 ];
 
-function Unlock() {
+export default function Unlock() {
   const navigate = useNavigate();
-  const { triggerWhisper } = useEcho();
+  const { setWhisper } = useEcho();
   const [displayed, setDisplayed] = useState([]);
-  const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    let idx = 0;
     const interval = setInterval(() => {
-      setDisplayed(prev => [...prev, messages[index]]);
-      triggerWhisper('unlock');
-      setIndex(prev => prev + 1);
+      const msg = MESSAGES[idx];
+      setDisplayed(prev => [...prev, msg]);
+      setWhisper(msg.toUpperCase());
+      idx++;
+      if (idx >= MESSAGES.length) {
+        clearInterval(interval);
+        localStorage.setItem('echo-unlocked', 'true');
+        setTimeout(() => navigate('/wall'), 2500);
+      }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [index, triggerWhisper]);
-
-  useEffect(() => {
-    if (index >= messages.length) {
-      localStorage.setItem('echo-unlocked', 'true');
-      setTimeout(() => navigate('/wall'), 2500);
-    }
-  }, [index, navigate]);
+  }, [navigate, setWhisper]);
 
   return (
-    <div style={styles.container}>
+    <main style={styles.container} role="log" aria-live="polite">
       {displayed.map((msg, i) => (
         <div key={i} style={styles.line}>{msg}</div>
       ))}
-    </div>
+    </main>
   );
 }
 
@@ -55,11 +52,11 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
+    overflowY: 'auto',
   },
   line: {
     marginBottom: '1rem',
+    opacity: 0,
     animation: 'fadeIn 1s ease forwards',
-  }
+  },
 };
-
-export default Unlock;

@@ -1,41 +1,62 @@
-import { useState } from 'react';
+// src/pages/Access2.jsx
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEcho } from '../context/EchoContext';
 
-function Access2() {
+export default function Access2() {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState(null);
+  const timerRef = useRef(null);
   const navigate = useNavigate();
+  const { setWhisper } = useEcho();
 
   const correctPhrase = 'hello.echo';
 
   const checkInput = () => {
-    if (input.trim().toLowerCase() === correctPhrase) {
+    const val = input.trim().toLowerCase();
+    if (val === correctPhrase) {
       setStatus('success');
-      setTimeout(() => navigate('/access-3'), 1200);
+      setWhisper('SIGNAL ACCEPTED');
+      timerRef.current = setTimeout(() => {
+        navigate('/access-3');
+      }, 1200);
     } else {
       setStatus('fail');
+      setWhisper('SIGNAL NOT RECOGNIZED');
     }
   };
 
+  // Cleanup any pending timeouts if component unmounts early
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   return (
-    <div style={{
-      backgroundColor: '#000',
-      color: '#0f0',
-      fontFamily: 'monospace',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '2rem'
-    }}>
-      <p style={{ marginBottom: '1rem' }}>
+    <main
+      style={{
+        backgroundColor: '#000',
+        color: '#0f0',
+        fontFamily: 'monospace',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '2rem',
+      }}
+    >
+      <p style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
         {'> ECHO: ██████████'}
       </p>
-      <p style={{ fontSize: '0.9rem', color: '#666' }}>(Hint: It's hidden in the static...)</p>
+      <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+        (Hint: It&apos;s hidden in the static…)
+      </p>
 
       <input
         type="text"
+        aria-label="Enter the magic phrase"
         value={input}
         placeholder="magic phrase"
         onChange={(e) => {
@@ -43,17 +64,16 @@ function Access2() {
           setStatus(null);
         }}
         onKeyDown={(e) => e.key === 'Enter' && checkInput()}
+        autoFocus
         style={{
           backgroundColor: '#000',
           color: '#0f0',
           border: '1px solid #0f0',
           fontFamily: 'monospace',
           padding: '0.5rem',
-          width: '250px',
+          width: 250,
           textAlign: 'center',
-          marginTop: '1rem'
         }}
-        autoFocus
       />
 
       <button
@@ -65,7 +85,7 @@ function Access2() {
           background: 'transparent',
           color: '#0f0',
           border: '1px solid #0f0',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
       >
         [submit]
@@ -81,8 +101,6 @@ function Access2() {
           ✓ Signal accepted.
         </p>
       )}
-    </div>
+    </main>
   );
 }
-
-export default Access2;

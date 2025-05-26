@@ -1,40 +1,61 @@
-import { useState } from 'react';
+// src/pages/Access.jsx
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEcho } from '../context/EchoContext';
 
-function Access() {
+export default function Access() {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState(null);
   const navigate = useNavigate();
+  const { setWhisper } = useEcho();
+  const timerRef = useRef(null);
 
   const correctAnswer = 'take away';
 
   const checkAnswer = () => {
-    if (input.trim().toLowerCase() === correctAnswer) {
+    const answer = input.trim().toLowerCase();
+    if (answer === correctAnswer) {
       setStatus('success');
-      setTimeout(() => navigate('/access-2'), 1200);
+      setWhisper('ACCESS GRANTED');
+      timerRef.current = setTimeout(() => {
+        navigate('/access-2');
+      }, 1200);
     } else {
       setStatus('fail');
+      setWhisper('ACCESS DENIED');
     }
   };
 
+  // Clean up redirect timer if user leaves before it fires
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div style={{
-      backgroundColor: '#000',
-      color: '#0f0',
-      fontFamily: 'monospace',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '2rem'
-    }}>
-      <p style={{ marginBottom: '1rem', maxWidth: '600px' }}>
+    <main
+      style={{
+        backgroundColor: '#000',
+        color: '#0f0',
+        fontFamily: 'monospace',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '2rem',
+      }}
+    >
+      <p style={{ marginBottom: '1rem', maxWidth: 600, textAlign: 'center' }}>
         {`> “A designer knows he has achieved perfection not when there is nothing left to add, but when there is nothing left to _______.”`}
       </p>
 
       <input
         type="text"
+        aria-label="Type the missing word"
         value={input}
         placeholder="your answer"
         onChange={(e) => {
@@ -48,8 +69,8 @@ function Access() {
           border: '1px solid #0f0',
           fontFamily: 'monospace',
           padding: '0.5rem',
-          width: '250px',
-          textAlign: 'center'
+          width: 250,
+          textAlign: 'center',
         }}
         autoFocus
       />
@@ -63,7 +84,7 @@ function Access() {
           background: 'transparent',
           color: '#0f0',
           border: '1px solid #0f0',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
       >
         [submit]
@@ -73,10 +94,10 @@ function Access() {
         <p style={{ color: '#f00', marginTop: '1rem' }}>{'> ACCESS DENIED'}</p>
       )}
       {status === 'success' && (
-        <p style={{ color: '#0f0', marginTop: '1rem' }}>✓ ACCESS FRAGMENT VERIFIED</p>
+        <p style={{ color: '#0f0', marginTop: '1rem' }}>
+          ✓ ACCESS FRAGMENT VERIFIED
+        </p>
       )}
-    </div>
+    </main>
   );
 }
-
-export default Access;

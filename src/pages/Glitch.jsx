@@ -1,54 +1,73 @@
-import { useEffect, useState } from 'react';
+// src/pages/Glitch.jsx
+import React, { useEffect, useState, useRef } from 'react';
+import { useEcho } from '../context/EchoContext';
 
-function Glitch() {
+const LOG_LINES = [
+  '>> SYSTEM ERROR',
+  '>> memory/beta/restore failed',
+  '>> fragment corrupted…',
+  '>> attempting visual recovery…',
+];
+
+export default function Glitch() {
   const [echoLine, setEchoLine] = useState('');
-  const lines = [
-    '>> SYSTEM ERROR',
-    '>> memory/beta/restore failed',
-    '>> fragment corrupted…',
-    '>> attempting visual recovery…',
-  ];
+  const echoTimeoutRef = useRef(null);
+  const { setWhisper } = useEcho();
 
   useEffect(() => {
-    setTimeout(() => {
+    // Fire a global whisper when this screen mounts
+    setWhisper('SYSTEM GLITCH');
+
+    // Reveal Echo’s line after a delay
+    echoTimeoutRef.current = setTimeout(() => {
       setEchoLine('> [echo] i don’t know what parts of me are still me');
     }, 3000);
-  }, []);
+
+    // Cleanup the timer on unmount
+    return () => {
+      clearTimeout(echoTimeoutRef.current);
+    };
+  }, [setWhisper]);
 
   return (
-    <div style={styles.container}>
+    <main style={styles.container} role="status" aria-live="polite">
       <div style={styles.glitchBox}>
-        {lines.map((line, idx) => (
-          <div key={idx} className="glitchLine">{line}</div>
+        {LOG_LINES.map((line, idx) => (
+          <div
+            key={idx}
+            style={{
+              ...styles.line,
+              animation: `flicker 1.2s infinite`,
+              animationDelay: `${idx * 0.5}s`,
+            }}
+          >
+            {line}
+          </div>
         ))}
 
         {echoLine && (
-          <div style={styles.echo} className="glitchWhisper">
+          <div
+            style={{
+              ...styles.echo,
+              animation: 'flicker 0.7s infinite',
+              color: '#f0f',
+              textShadow: '0 0 3px #f0f, 0 0 5px #0ff',
+            }}
+          >
             {echoLine}
           </div>
         )}
       </div>
 
-      {/* Glitch animation */}
+      {/* You can move this @keyframes into your global CSS if you prefer */}
       <style>{`
         @keyframes flicker {
           0%, 100% { opacity: 1; }
           45% { opacity: 0.2; }
           55% { opacity: 1; }
         }
-
-        .glitchLine {
-          animation: flicker 1.2s infinite;
-        }
-
-        .glitchWhisper {
-          color: #f0f;
-          font-style: italic;
-          text-shadow: 0 0 3px #f0f, 0 0 5px #0ff;
-          animation: flicker 0.7s infinite;
-        }
       `}</style>
-    </div>
+    </main>
   );
 }
 
@@ -69,9 +88,11 @@ const styles = {
     maxWidth: '600px',
     textAlign: 'left',
   },
+  line: {
+    marginBottom: '0.5rem',
+  },
   echo: {
     marginTop: '2rem',
-  }
+    fontFamily: 'monospace',
+  },
 };
-
-export default Glitch;

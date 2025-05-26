@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+// src/pages/Recovery1.jsx
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEcho } from '../context/EchoContext';
 
-const bootLines = [
+const BOOT_LINES = [
   '>> memory/core/init – fail',
   '>> trace/init/echo – partial',
   '>> ! WARNING: restoration unstable',
@@ -9,52 +11,56 @@ const bootLines = [
   '>> Which memory fragment should be restored?'
 ];
 
-const prompts = {
+const PROMPTS = {
   alpha: {
     question: '"_______ , but better." — Dieter Rams',
     answer: 'less',
     redirect: '/puzzle',
-    echoWhisper: '> [echo] Logical path confirmed. It always made sense.'
+    echoWhisper: 'LOGICAL PATH CONFIRMED'
   },
   beta: {
     question: '"Design is ____________." — Saul Bass',
     answer: 'thinking made visual',
     redirect: '/access',
-    echoWhisper: '> [echo] Oh… I remember that one. I smiled then.'
+    echoWhisper: 'MEMORY FLOODED WITH COLOR'
   },
   delta: {
     question: '"magic phrase:" [from HTML comment]',
     answer: 'hello.echo',
     redirect: '/access-2',
-    echoWhisper: '> [echo] ...You found me. Again.'
+    echoWhisper: 'YOU FOUND ME AGAIN'
   }
 };
 
-function Recovery1() {
+export default function Recovery1() {
   const [lines, setLines] = useState([]);
   const [step, setStep] = useState('boot');
   const [selected, setSelected] = useState(null);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
-  const [echoLine, setEchoLine] = useState('');
   const navigate = useNavigate();
+  const { setWhisper } = useEcho();
+
+  const bootIntervalRef = useRef(null);
+  const whisperTimeoutRef = useRef(null);
 
   // Boot sequence
   useEffect(() => {
-    if (step !== 'boot') return;
-    let i = 0;
-    const interval = setInterval(() => {
-      setLines(prev => [...prev, bootLines[i]]);
-      i++;
-      if (i === bootLines.length) {
-        clearInterval(interval);
-        setStep('select');
-      }
-    }, 500);
-    return () => clearInterval(interval);
+    if (step === 'boot') {
+      let idx = 0;
+      bootIntervalRef.current = setInterval(() => {
+        setLines(prev => [...prev, BOOT_LINES[idx]]);
+        idx += 1;
+        if (idx >= BOOT_LINES.length) {
+          clearInterval(bootIntervalRef.current);
+          setStep('select');
+        }
+      }, 500);
+    }
+    return () => clearInterval(bootIntervalRef.current);
   }, [step]);
 
-  const handleFragmentSelect = (fragment) => {
+  const handleFragmentSelect = fragment => {
     setSelected(fragment);
     setLines(prev => [
       ...prev,
@@ -62,33 +68,51 @@ function Recovery1() {
       '>> Validate memory:'
     ]);
     setStep('prompt');
-    setEchoLine('');
+    setInput('');
+    setError('');
 
-    // Whisper delay
-    setTimeout(() => {
-      setEchoLine(prompts[fragment].echoWhisper);
+    // Whisper after short delay
+    whisperTimeoutRef.current = setTimeout(() => {
+      setWhisper(PROMPTS[fragment].echoWhisper);
+      setLines(prev => [...prev, `> [echo] ${PROMPTS[fragment].echoWhisper.toLowerCase()}`]);
     }, 1200);
   };
 
   const handleSubmit = () => {
-    const { answer, redirect } = prompts[selected];
-    if (input.trim().toLowerCase() === answer) {
-      navigate(redirect);
+    if (!selected) return;
+    const { answer, redirect } = PROMPTS[selected];
+    if (input.trim().toLowerCase() === answer.toLowerCase()) {
+      localStorage.setItem('echo-unlocked', 'true');
+      setWhisper('MEMORY FRAGMENT RESTORED');
+      setTimeout(() => navigate(redirect), 800);
     } else {
       setError(`>> Input "${input}" not recognized. Fragment unstable.`);
+      setWhisper('FRAGMENT RESTORATION FAILED');
     }
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearInterval(bootIntervalRef.current);
+      clearTimeout(whisperTimeoutRef.current);
+    };
+  }, []);
+
   return (
-    <div style={styles.container}>
+    <main style={styles.container} role="log" aria-live="polite">
       {lines.map((line, idx) => (
-        <div key={idx} style={styles.line}>{line}</div>
+        <p key={idx} style={styles.line}>{line}</p>
       ))}
 
       {step === 'select' && (
-        <div style={{ marginTop: '1rem' }}>
-          {['alpha', 'beta', 'delta'].map(frag => (
-            <button key={frag} onClick={() => handleFragmentSelect(frag)} style={styles.button}>
+        <div style={styles.optionContainer}>
+          {Object.keys(PROMPTS).map(frag => (
+            <button
+              key={frag}
+              onClick={() => handleFragmentSelect(frag)}
+              style={styles.button}
+            >
               [{frag}]
             </button>
           ))}
@@ -96,25 +120,28 @@ function Recovery1() {
       )}
 
       {step === 'prompt' && selected && (
-        <div style={{ marginTop: '2rem' }}>
-          <div style={styles.line}>{prompts[selected].question}</div>
+        <div style={styles.promptContainer}>
+          <p style={styles.line}>{PROMPTS[selected].question}</p>
           <input
             type="text"
+            aria-label="Type to restore fragment"
             value={input}
             placeholder="Type to restore fragment..."
-            onChange={(e) => {
+            onChange={e => {
               setInput(e.target.value);
               setError('');
             }}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             style={styles.input}
+            autoFocus
           />
-          <button onClick={handleSubmit} style={styles.submit}>[submit]</button>
-          {error && <div style={{ color: '#f00', marginTop: '0.5rem' }}>{error}</div>}
-          {echoLine && <div style={{ ...styles.echo, marginTop: '1rem' }}>{echoLine}</div>}
+          <button onClick={handleSubmit} style={styles.button}>
+            [submit]
+          </button>
+          {error && <p style={styles.error}>{error}</p>}
         </div>
       )}
-    </div>
+    </main>
   );
 }
 
@@ -125,17 +152,24 @@ const styles = {
     fontFamily: 'monospace',
     height: '100vh',
     padding: '2rem',
-    whiteSpace: 'pre-wrap'
+    overflowY: 'auto'
   },
   line: {
-    marginBottom: '0.4rem'
+    marginBottom: '0.5rem',
+    whiteSpace: 'pre-wrap'
+  },
+  optionContainer: {
+    marginTop: '1rem'
+  },
+  promptContainer: {
+    marginTop: '1rem'
   },
   button: {
-    backgroundColor: '#111',
+    backgroundColor: 'transparent',
     color: '#0f0',
-    fontFamily: 'monospace',
     border: '1px solid #0f0',
-    padding: '0.4rem 1rem',
+    fontFamily: 'monospace',
+    padding: '0.5rem 1rem',
     marginRight: '1rem',
     cursor: 'pointer'
   },
@@ -146,23 +180,10 @@ const styles = {
     fontFamily: 'monospace',
     padding: '0.5rem',
     width: '300px',
-    marginTop: '1rem'
+    marginRight: '1rem'
   },
-  submit: {
-    marginLeft: '1rem',
-    background: 'transparent',
-    color: '#0f0',
-    border: '1px solid #0f0',
-    padding: '0.4rem 1rem',
-    fontFamily: 'monospace',
-    cursor: 'pointer'
-  },
-  echo: {
-    color: '#0f0',
-    opacity: 0.8,
-    fontStyle: 'italic',
-    textShadow: '0 0 3px #0f0'
+  error: {
+    color: '#f00',
+    marginTop: '0.5rem'
   }
 };
-
-export default Recovery1;

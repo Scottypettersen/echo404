@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+// src/pages/CoreDump.jsx
+import React, { useEffect, useRef } from 'react';
 import { useEcho } from '../context/EchoContext';
-
 
 const logs = [
   "> log_01: 'memory access granted...'",
@@ -14,18 +14,34 @@ const logs = [
 ];
 
 export default function CoreDump() {
-  const { triggerWhisper } = useEcho();
+  const { setWhisper } = useEcho();
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    triggerWhisper('memory');
-  }, [triggerWhisper]);
+    // Trigger a custom whisper on mount
+    setWhisper('CORE DUMP INITIATED');
+  }, [setWhisper]);
+
+  // Scroll to bottom as new logs appear
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, []);
 
   return (
-    <div style={styles.container}>
+    <main
+      ref={containerRef}
+      style={styles.container}
+      aria-live="polite"
+      role="log"
+    >
       {logs.map((line, i) => (
-        <p key={i} style={styles.line}>{line}</p>
+        <p key={i} style={{ ...styles.line, animationDelay: `${i * 0.5}s` }}>
+          {line}
+        </p>
       ))}
-    </div>
+    </main>
   );
 }
 
@@ -37,10 +53,19 @@ const styles = {
     padding: '2rem',
     minHeight: '100vh',
     overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
   },
   line: {
     marginBottom: '1rem',
-    animation: 'type 1s ease-in-out',
     whiteSpace: 'pre-wrap',
-  }
+    opacity: 0,
+    animation: 'typeIn 0.3s forwards',
+  },
 };
+
+// In your global CSS (e.g., index.css), add:
+//
+// @keyframes typeIn {
+//   to { opacity: 1; }
+// }

@@ -1,14 +1,44 @@
-/* Global CSS for Echo404 Project */
+/* ───────────────────────────────────────────────────────────────────────── */
+/*                            Echo404 Global Styles                           */
+/* ───────────────────────────────────────────────────────────────────────── */
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Typography */
+  --font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --line-height: 1.5;
+  --font-weight: 400;
 
+  /* Color scheme */
+  --text-color: rgba(255, 255, 255, 0.87);
+  --bg-color: #242424;
+
+  /* Accent */
+  --accent: #646cff;
+  --accent-hover: #535bf2;
+
+  /* UI elements */
+  --btn-bg: #1a1a1a;
+  --btn-radius: 8px;
+  --btn-padding: 0.6em 1.2em;
+
+  /* Tile */
+  --tile-border: #0f0;
+
+  /* Transitions */
+  --ease: 0.25s ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  line-height: var(--line-height);
+  font-weight: var(--font-weight);
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -16,74 +46,81 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: inherit;
-  color: inherit;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
 }
 
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--ease);
 }
 a:hover {
-  color: #535bf2;
+  color: var(--accent-hover);
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  font-family: inherit;
   font-size: 1em;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  border-radius: var(--btn-radius);
+  border: 1px solid transparent;
+  padding: var(--btn-padding);
+  background-color: var(--btn-bg);
+  color: var(--text-color);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color var(--ease);
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--accent);
 }
-button:focus,
-button:focus-visible {
+button:focus {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Headings */
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  margin: 0;
 }
 
-/* Keyframe Animations */
+/* ───────────────────────────────────────────────────────────────────────── */
+/*                             Keyframe Animations                          */
+/* ───────────────────────────────────────────────────────────────────────── */
+
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateX(-50%) scale(0.9); }
-  10% { opacity: 1; transform: translateX(-50%) scale(1); }
-  90% { opacity: 1; }
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.9); }
+  10%  { opacity: 1; transform: translateX(-50%) scale(1); }
+  90%  { opacity: 1; }
   100% { opacity: 0; transform: translateX(-50%) scale(1); }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
 @keyframes typeIn {
   to { opacity: 1; }
 }
 
-/* Dark/Light Mode */
+/* ───────────────────────────────────────────────────────────────────────── */
+/*                             Light / Dark Mode                            */
+/* ───────────────────────────────────────────────────────────────────────── */
+
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+    --text-color: #213547;
+    --bg-color: #ffffff;
+    --accent-hover: #747bff;
+    --btn-bg: #f9f9f9;
   }
 }

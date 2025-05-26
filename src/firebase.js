@@ -1,29 +1,16 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { getFirestore }  from "firebase/firestore";
-import {
-  initializeAppCheck,
-  ReCaptchaV3Provider
-} from "firebase/app-check";
+import { getFirestore }   from "firebase/firestore";
 
-// — your web app’s config from the console —
+// ← copy/paste your own values here
 const firebaseConfig = {
-  apiKey: "…",
-  authDomain: "…",
-  projectId: "…",
-  storageBucket: "…",
-  messagingSenderId: "…",
-  appId: "…"
+  apiKey: "AIzaSyDr3vcP2IsUL8KFVxizgJCZTLTm4OiPbAw",
+  authDomain: "echo404-8f287.firebaseapp.com",
+  projectId: "echo404-8f287",
+  storageBucket: "echo404-8f287.appspot.com",
+  messagingSenderId: "444571208682",
+  appId: "1:444571208682:web:92d27e0c6261313f7f0093"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// (Optional) Protect with App Check
-initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider("YOUR_RECAPTCHA_SITE_KEY"),
-  isTokenAutoRefreshEnabled: true
-});
-
-// Export the Firestore instance
 export const db = getFirestore(app);

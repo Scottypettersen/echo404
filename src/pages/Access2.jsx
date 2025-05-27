@@ -10,73 +10,69 @@ export default function Access2() {
   const navigate = useNavigate();
   const inputRef = useRef();
 
-  // user’s raw input (we don’t actually validate its contents)
-  const [inputValue, setInputValue] = useState('');
-  // reveal state: start as underscores (preserving spaces)
+  // raw user input (ignored for correctness)
+  const [raw, setRaw] = useState('');
+  // reveal state: underscores → letters
   const [reveal, setReveal] = useState(
     MAGIC.map(ch => (ch === ' ' ? ' ' : '_'))
   );
-  // feedback: 'ready' | 'fail' | 'success'
-  const [status, setStatus] = useState('ready');
-  const timerRef = useRef();
+  const [status, setStatus] = useState('ready'); // 'ready' | 'fail' | 'success'
+  const timer = useRef();
 
-  // on every keystroke, advance one letter in reveal
   const handleChange = e => {
-    setInputValue(e.target.value);
+    setRaw(e.target.value);
     setStatus('ready');
+
     setReveal(r => {
-      const next = r.findIndex(c => c === '_');
-      if (next === -1) return r;
+      const nextIdx = r.findIndex(c => c === '_');
+      if (nextIdx === -1) return r;
       const copy = [...r];
-      copy[next] = MAGIC[next];
+      copy[nextIdx] = MAGIC[nextIdx];
       return copy;
     });
   };
 
-  const checkSubmit = () => {
-    // only succeed if we've fully revealed the phrase
+  const handleSubmit = () => {
     if (reveal.join('') === MAGIC.join('')) {
       setStatus('success');
       setWhisper('ACCESS GRANTED');
-      timerRef.current = setTimeout(() => navigate('/access-3'), 1000);
+      timer.current = setTimeout(() => navigate('/access-3'), 800);
     } else {
       setStatus('fail');
       setWhisper('NOT YET');
     }
   };
 
-  // clean up timeout
-  useEffect(() => () => window.clearTimeout(timerRef.current), []);
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   return (
     <main
       style={{
         backgroundColor: '#000',
-        color: '#0f0',
+        color:      '#0f0',
         fontFamily: 'monospace',
-        height: '100vh',
-        padding: '2rem',
-        display: 'flex',
+        height:     '100vh',
+        display:    'flex',
         flexDirection: 'column',
-        alignItems: 'center',
         justifyContent: 'center',
+        alignItems: 'center',
+        padding:    '2rem'
       }}
     >
-      {/* Static “ECHO: █████” header */}
       <p style={{ marginBottom: '0.5rem' }}>{'> ECHO: ██████████'}</p>
-      <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1.5rem' }}>
-        (Type anything and watch the secret phrase reveal itself…)
+      <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+        (Type anything to slowly reveal the secret…)
       </p>
 
-      {/* The reveal bar */}
+      {/* Reveal bar */}
       <div
         style={{
-          fontSize: '1.5rem',
           letterSpacing: '0.2em',
-          textShadow: '0 0 4px #0f0',
-          marginBottom: '2rem',
-          minWidth: '12ch',
-          textAlign: 'center',
+          fontSize:      '1.5rem',
+          marginBottom:  '2rem',
+          textShadow:    '0 0 4px #0f0',
+          minWidth:      '12ch',
+          textAlign:     'center',
         }}
       >
         {reveal.join('')}
@@ -86,31 +82,30 @@ export default function Access2() {
       <div style={{ display: 'flex', gap: '1rem' }}>
         <input
           ref={inputRef}
-          type="text"
-          value={inputValue}
+          value={raw}
           onChange={handleChange}
-          onKeyDown={e => e.key === 'Enter' && checkSubmit()}
-          placeholder="Type here…"
+          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+          placeholder="Type here..."
           autoFocus
           style={{
             backgroundColor: '#000',
-            color: '#0f0',
-            border: '1px solid #0f0',
-            fontFamily: 'monospace',
-            padding: '0.5rem 1rem',
-            width: 250,
-            textAlign: 'center',
+            color:           '#0f0',
+            border:          '1px solid #0f0',
+            padding:         '0.5rem 1rem',
+            fontFamily:      'monospace',
+            width:           250,
+            textAlign:       'center',
           }}
         />
         <button
-          onClick={checkSubmit}
+          onClick={handleSubmit}
           style={{
-            background: 'transparent',
-            color: '#0f0',
-            border: '1px solid #0f0',
-            fontFamily: 'monospace',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
+            background:  'transparent',
+            color:       '#0f0',
+            border:      '1px solid #0f0',
+            fontFamily:  'monospace',
+            padding:     '0.5rem 1rem',
+            cursor:      'pointer',
           }}
         >
           [submit]

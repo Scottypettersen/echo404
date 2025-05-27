@@ -3,124 +3,155 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEcho } from '../context/EchoContext';
 
-const MAGIC = 'TAKE AWAY'.split('');
+const TARGET = 'TAKE AWAY';
+const MAX_WRONG = 6;
 
 export default function Access2() {
   const { setWhisper } = useEcho();
   const navigate = useNavigate();
   const inputRef = useRef();
 
-  // raw user input (ignored for correctness)
-  const [raw, setRaw] = useState('');
-  // reveal state: underscores → letters
+  // reveal state: array of '_' or letter
   const [reveal, setReveal] = useState(
-    MAGIC.map(ch => (ch === ' ' ? ' ' : '_'))
+    TARGET.split('').map(ch => (ch === ' ' ? ' ' : '_'))
   );
-  const [status, setStatus] = useState('ready'); // 'ready' | 'fail' | 'success'
-  const timer = useRef();
+  const [wrong, setWrong] = useState(0);
+  const [tried, setTried] = useState([]); // letters already guessed
+  const [status, setStatus] = useState('ready'); // ready | fail | success | dead
 
-  const handleChange = e => {
-    setRaw(e.target.value);
-    setStatus('ready');
+  // focus the single-character input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
-    setReveal(r => {
-      const nextIdx = r.findIndex(c => c === '_');
-      if (nextIdx === -1) return r;
-      const copy = [...r];
-      copy[nextIdx] = MAGIC[nextIdx];
-      return copy;
-    });
-  };
+  const handleGuess = e => {
+    e.preventDefault();
+    const letter = e.target.letter.value.toUpperCase();
+    e.target.letter.value = '';
+    if (!letter.match(/^[A-Z]$/)) return;
+    if (tried.includes(letter) || status !== 'ready') return;
 
-  const handleSubmit = () => {
-    if (reveal.join('') === MAGIC.join('')) {
-      setStatus('success');
-      setWhisper('ACCESS GRANTED');
-      timer.current = setTimeout(() => navigate('/access-3'), 800);
+    setTried(t => [...t, letter]);
+
+    if (TARGET.includes(letter)) {
+      // reveal all occurrences
+      setReveal(r =>
+        r.map((ch, i) => (TARGET[i] === letter ? letter : ch))
+      );
+      setWhisper(`REVEALED: ${letter}`);
     } else {
+      setWrong(w => w + 1);
+      setWhisper(`WRONG: ${letter}`);
       setStatus('fail');
-      setWhisper('NOT YET');
+      setTimeout(() => setStatus('ready'), 300);
     }
   };
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // watch for game end
+  useEffect(() => {
+    if (reveal.join('') === TARGET) {
+      setStatus('success');
+      setWhisper('ACCESS GRANTED');
+      setTimeout(() => navigate('/access-3'), 1000);
+    } else if (wrong >= MAX_WRONG) {
+      setStatus('dead');
+      setWhisper('SYSTEM LOCKED');
+    }
+  }, [reveal, wrong, setWhisper, navigate]);
 
   return (
-    <main
-      style={{
-        backgroundColor: '#000',
-        color:      '#0f0',
-        fontFamily: 'monospace',
-        height:     '100vh',
-        display:    'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding:    '2rem'
-      }}
-    >
-      <p style={{ marginBottom: '0.5rem' }}>{'> ECHO: ██████████'}</p>
-      <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-        (Type anything to slowly reveal the secret…)
+    <main style={styles.container}>
+      <h1 style={styles.title}>> ECHO PUZZLE 2</h1>
+      <p style={styles.subtitle}>
+        Guess the letters to reveal the secret phrase.
       </p>
 
-      {/* Reveal bar */}
-      <div
-        style={{
-          letterSpacing: '0.2em',
-          fontSize:      '1.5rem',
-          marginBottom:  '2rem',
-          textShadow:    '0 0 4px #0f0',
-          minWidth:      '12ch',
-          textAlign:     'center',
-        }}
-      >
-        {reveal.join('')}
+      <div style={styles.hangman}>
+        {reveal.map((ch, i) => (
+          <span key={i} style={styles.letter}>{ch}</span>
+        ))}
       </div>
 
-      {/* Input + submit */}
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <input
-          ref={inputRef}
-          value={raw}
-          onChange={handleChange}
-          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-          placeholder="Type here..."
-          autoFocus
-          style={{
-            backgroundColor: '#000',
-            color:           '#0f0',
-            border:          '1px solid #0f0',
-            padding:         '0.5rem 1rem',
-            fontFamily:      'monospace',
-            width:           250,
-            textAlign:       'center',
-          }}
-        />
-        <button
-          onClick={handleSubmit}
-          style={{
-            background:  'transparent',
-            color:       '#0f0',
-            border:      '1px solid #0f0',
-            fontFamily:  'monospace',
-            padding:     '0.5rem 1rem',
-            cursor:      'pointer',
-          }}
-        >
-          [submit]
-        </button>
-      </div>
-
-      {/* Feedback */}
-      {status === 'fail' && (
-        <p style={{ color: '#f00', marginTop: '1rem' }}>
-          {'> Too early… keep typing.'}
-        </p>
+      {status === 'dead' ? (
+        <p style={styles.dead}>Too many wrong—access denied.</p>
+      ) : (
+        <form onSubmit={handleGuess} style={styles.form}>
+          <input
+            ref={inputRef}
+            name="letter"
+            maxLength={1}
+            disabled={status !== 'ready'}
+            style={styles.input}
+            autoComplete="off"
+          />
+          <button type="submit" style={styles.button} disabled={status!=='ready'}>
+            Guess
+          </button>
+        </form>
       )}
+
+      <p style={styles.info}>
+        Tried: {tried.join(', ') || 'none'}<br/>
+        Wrong: {wrong} / {MAX_WRONG}
+      </p>
+
       {status === 'success' && (
-        <p style={{ color: '#0f0', marginTop: '1rem' }}>✓ ACCESS GRANTED</p>
+        <p style={styles.success}>✓ Phrase revealed!</p>
+      )}
+      {status === 'fail' && (
+        <p style={styles.fail}>✗ No “{tried.slice(-1)[0]}” in there.</p>
       )}
     </main>
   );
 }
+
+const styles = {
+  container: {
+    backgroundColor: '#000',
+    color: '#0f0',
+    fontFamily: 'monospace',
+    height: '100vh',
+    padding: '2rem',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  title: {
+    margin: 0,
+    marginBottom: '1rem',
+  },
+  subtitle: {
+    marginBottom: '1.5rem',
+    color: '#666',
+  },
+  hangman: {
+    display: 'flex',
+    gap: '0.5rem',
+    fontSize: '2rem',
+    marginBottom: '1.5rem',
+  },
+  letter: {
+    width: '1ch',
+    borderBottom: '2px solid #0f0',
+    textAlign: 'center'
+  },
+  form: { display: 'flex', gap: '1rem', marginBottom: '1rem' },
+  input: {
+    width: '2rem',
+    fontSize: '1.5rem',
+    textAlign: 'center',
+    background: '#000',
+    color: '#0f0',
+    border: '1px solid #0f0'
+  },
+  button: {
+    border: '1px solid #0f0',
+    background: 'transparent',
+    color: '#0f0',
+    cursor: 'pointer'
+  },
+  info: { fontSize: '0.9rem', marginTop: '1rem', color: '#666' },
+  success: { color: '#0f0', marginTop: '1rem' },
+  fail: { color: '#f00', marginTop: '0.5rem' },
+  dead: { color: '#f00', marginTop: '1rem' }
+};

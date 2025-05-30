@@ -1,21 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
+// src/pages/Wall.jsx
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../firebase";
 import { useEcho } from "../context/EchoContext";
+import "./Wall.css"; // Import the CSS
 
-const ROWS  = 25;
-const COLS  = 40;
+const ROWS = 25;
+const COLS = 40;
 const TOTAL = ROWS * COLS;
 
 export default function Wall() {
   const { setWhisper } = useEcho();
   const labelRef = useRef();
+  const colorInputRef = useRef(); // Ref for the color input
+  const isPhone = useMediaQuery('(max-width: 600px)'); // Custom hook for media query
 
   // 0️⃣ — auth loading / error / user
   const [user, setUser] = useState(undefined);
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => {
+    const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (u) {
         setWhisper("ECHO WALL LOADED");
@@ -28,18 +32,17 @@ export default function Wall() {
 
   // 1️⃣ — tiles grid
   const [tiles, setTiles] = useState(Array(TOTAL).fill(null));
-  // your claimed index (null if none)
   const [myIndex, setMyIndex] = useState(null);
 
-  // 2️⃣ — real-time subscribe *only after* we have a user
+  // 2️⃣ — real-time subscribe
   useEffect(() => {
-    if (!user) return; // wait for auth
+    if (!user) return;
     const unsub = onSnapshot(
       collection(db, "tiles"),
-      snap => {
+      (snap) => {
         const updated = Array(TOTAL).fill(null);
         let foundMine = null;
-        snap.forEach(d => {
+        snap.forEach((d) => {
           const data = d.data();
           updated[data.index] = data;
           if (data.claimedBy === user.uid) {
@@ -52,7 +55,7 @@ export default function Wall() {
           setWhisper(`YOU ALREADY CLAIMED #${foundMine}`);
         }
       },
-      err => {
+      (err) => {
         console.error("Firestore listen error:", err);
         setWhisper("OFFLINE MODE");
       }
@@ -66,24 +69,33 @@ export default function Wall() {
   const [form, setForm] = useState({ label: "", color: "#0f0", message: "" });
 
   // 4️⃣ — click handler
-  const handleClick = idx => {
-    if (tiles[idx]) {
-      setViewTile({ ...tiles[idx], index: idx });
-      setWhisper(`VIEWING #${idx}`);
-      return;
-    }
-    if (myIndex !== null) {
-      setWhisper(`ONE TILE ONLY (#${myIndex})`);
-      return;
-    }
-    setClaimIdx(idx);
-    setForm({ label: "", color: "#0f0", message: "" });
-    setWhisper(`CLAIMING #${idx}`);
-    setTimeout(() => labelRef.current?.focus(), 100);
-  };
+  const handleClick = useCallback(
+    (idx) => {
+      if (tiles[idx]) {
+        setViewTile({ ...tiles[idx], index: idx });
+        setWhisper(`VIEWING #${idx}`);
+        return;
+      }
+      if (myIndex !== null) {
+        setWhisper(`ONE TILE ONLY (#${myIndex})`);
+        return;
+      }
+      setClaimIdx(idx);
+      setForm({ label: "", color: "#0f0", message: "" });
+      setWhisper(`CLAIMING #${idx}`);
+      // Focus the label input first, then the color input if it's there
+      setTimeout(() => {
+        labelRef.current?.focus();
+        if (colorInputRef.current) {
+          colorInputRef.current.title = "Click to change tile color!"; // Add reminder title
+        }
+      }, 100);
+    },
+    [tiles, myIndex, setWhisper]
+  );
 
   // 5️⃣ — submit new claim
-  const submitClaim = async e => {
+  const submitClaim = async (e) => {
     e.preventDefault();
     if (!form.label.trim()) {
       labelRef.current.focus();
@@ -91,12 +103,12 @@ export default function Wall() {
     }
     const idx = claimIdx;
     const newTile = {
-      index:     idx,
-      label:     form.label.slice(0, 3).toUpperCase(),
-      color:     form.color,
-      message:   form.message.slice(0, 140),
+      index: idx,
+      label: form.label.slice(0, 3).toUpperCase(),
+      color: form.color,
+      message: form.message.slice(0, 140),
       claimedBy: user.uid,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     try {
       await setDoc(doc(db, "tiles", String(idx)), newTile);
@@ -108,35 +120,77 @@ export default function Wall() {
     }
   };
 
+  // 6️⃣ — Subtle Whispers
+  const triggerWhispers = useCallback(() => {
+    if (!user) return;
+    const delay = 15000 + Math.random() * 15000;
+    const emptyTileCount = tiles.filter((tile) => !tile).length;
+
+    if (emptyTileCount > 0 && myIndex === null) {
+      const hint = getRandomElement([
+        "... an empty space awaits...",
+        "... leave your mark...",
+        "... the wall is listening...",
+        "... a blank canvas calls...",
+      ]);
+      setWhisper(hint);
+    } else if (myIndex !== null && viewTile?.claimedBy !== user.uid) {
+      const hint = getRandomElement([
+        "... others have left their echoes...",
+        "... see what others have shared...",
+        "... a story in every square...",
+      ]);
+      setWhisper(hint);
+    } else if (myIndex !== null && viewTile?.claimedBy === user.uid) {
+      const hint = getRandomElement([
+        "... you've made your mark...",
+        "... your echo resonates...",
+      ]);
+      setWhisper(hint);
+    } else if (emptyTileCount === 0) {
+      const hint = getRandomElement([
+        "... the wall is full...",
+        "... every space claimed...",
+      ]);
+      setWhisper(hint);
+    }
+
+    setTimeout(triggerWhispers, delay);
+  }, [user, tiles, myIndex, viewTile, setWhisper]);
+
+  useEffect(() => {
+    const initialDelay = 5000 + Math.random() * 5000;
+    setTimeout(triggerWhispers, initialDelay);
+  }, [triggerWhispers]);
+
   // 🚦 — auth loading / error states
   if (user === undefined) {
-    return <div style={{ color: "#0f0", fontFamily: "monospace" }}>Loading authentication…</div>;
+    return <div className="loading-auth">Loading authentication…</div>;
   }
   if (user === null) {
-    return <div style={{ color: "#f00", fontFamily: "monospace" }}>Authentication failed. Check console.</div>;
+    return <div className="auth-failed">Authentication failed. Check console.</div>;
   }
 
   // ✔️ — main UI
   return (
-    <main style={styles.container}>
-      <h1 style={styles.title}>Echo Wall</h1>
-      <p style={styles.subtitle}>
+    <main className="wall-container">
+      <h1 className="wall-title">Echo Wall</h1>
+      <p className="wall-subtitle">
         Click an empty square to leave your trace — everyone sees it.
       </p>
 
-      <div style={styles.gridWrapper}>
-        <div style={{ ...styles.grid, gridTemplateColumns: `repeat(${COLS}, 24px)` }}>
+      <div className="grid-wrapper">
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${COLS}, var(--tile-size))` }}>
           {tiles.map((t, i) => (
             <div
               key={i}
               onClick={() => handleClick(i)}
               title={t ? `${t.label}: ${t.message}` : `Tile #${i}`}
-              style={{
-                ...styles.tile,
-                backgroundColor: t ? t.color : "#111",
-                color: t ? "#000" : "transparent",
-                cursor: t ? "pointer" : (myIndex === null ? "pointer" : "not-allowed")
-              }}
+              className={`tile ${t ? "claimed" : "empty"} ${
+                myIndex === null ? "can-claim" : "cannot-claim"
+              } ${i === myIndex ? "my-claimed-tile" : ""}`}
+              /* Added class for your claimed tile */
+              style={{ backgroundColor: t ? t.color : undefined }}
             >
               {t?.label}
             </div>
@@ -146,35 +200,39 @@ export default function Wall() {
 
       {/* ─── Claim Modal ────────────────────────── */}
       {claimIdx !== null && (
-        <div style={styles.modalOverlay}>
-          <form onSubmit={submitClaim} style={styles.modalBox}>
+        <div className="modal-overlay">
+          <form onSubmit={submitClaim} className="modal-box">
             <h2>Claim Tile #{claimIdx}</h2>
-            <input
-              ref={labelRef}
-              maxLength={3}
-              placeholder="Label (3 chars)"
-              value={form.label}
-              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-              style={styles.input}
-            />
-            <input
-              type="color"
-              value={form.color}
-              onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
-              style={{ ...styles.input, width: "3rem", padding: 0, marginLeft: "1rem" }}
-            />
+            <div className="modal-form-row"> {/* New div for layout */}
+              <input
+                ref={labelRef}
+                maxLength={3}
+                placeholder="Label (3 chars)"
+                value={form.label}
+                onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+                className="modal-input"
+              />
+              <input
+                ref={colorInputRef} // Attach ref here
+                type="color"
+                value={form.color}
+                onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
+                className="modal-color-input"
+                title="Click to change tile color!" // Persistent reminder
+              />
+            </div>
             <textarea
               maxLength={140}
               placeholder="Optional message (140 chars)"
               value={form.message}
-              onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-              style={styles.textarea}
+              onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+              className="modal-textarea"
             />
-            <div style={styles.actions}>
-              <button type="button" onClick={() => setClaimIdx(null)} style={styles.button}>
+            <div className="modal-actions">
+              <button type="button" onClick={() => setClaimIdx(null)} className="modal-button">
                 Cancel
               </button>
-              <button type="submit" disabled={!form.label.trim()} style={styles.button}>
+              <button type="submit" disabled={!form.label.trim()} className="modal-button primary-button"> {/* Added primary-button class */}
                 Claim
               </button>
             </div>
@@ -184,12 +242,20 @@ export default function Wall() {
 
       {/* ─── View Modal ─────────────────────────── */}
       {viewTile && (
-        <div style={styles.modalOverlay} onClick={() => setViewTile(null)}>
-          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
-            <h2>Tile #{viewTile.index} — {viewTile.label}</h2>
-            <p><strong>Message:</strong> {viewTile.message || "—"}</p>
-            <p><strong>By:</strong> {viewTile.claimedBy === user.uid ? "You" : viewTile.claimedBy}</p>
-            <button style={styles.button} onClick={() => setViewTile(null)}>Close</button>
+        <div className="modal-overlay" onClick={() => setViewTile(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h2>
+              Tile #{viewTile.index} — {viewTile.label}
+            </h2>
+            <p>
+              <strong>Message:</strong> {viewTile.message || "—"}
+            </p>
+            <p>
+              <strong>By:</strong> {viewTile.claimedBy === user.uid ? "You" : viewTile.claimedBy}
+            </p>
+            <button className="modal-button" onClick={() => setViewTile(null)}>
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -197,17 +263,18 @@ export default function Wall() {
   );
 }
 
-const styles = {
-  container:    { background: "#000", color: "#0f0", fontFamily: "monospace", height: "100vh", padding: "1rem", display: "flex", flexDirection: "column", alignItems: "center", overflow: "hidden" },
-  title:        { margin: 0, fontSize: "2rem" },
-  subtitle:     { marginBottom: "1rem" },
-  gridWrapper:  { flexGrow: 1, overflow: "auto", width: "100%", maxWidth: COLS * 26 },
-  grid:         { display: "grid", gap: "2px", justifyContent: "center" },
-  tile:         { width:24, height:24, border:"1px solid #0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, userSelect:"none" },
-  modalOverlay: { position:"fixed", top:0,left:0,right:0,bottom:0, background:"rgba(0,0,0,0.85)", display:"flex", justifyContent:"center", alignItems:"center", zIndex:1000 },
-  modalBox:     { background:"#000", color:"#0f0", padding:"1rem", border:"1px solid #0f0", width:"90%", maxWidth:360, display:"flex", flexDirection:"column", gap:"0.75rem" },
-  input:        { background:"#111", color:"#0f0", border:"1px solid #0f0", padding:"0.5rem", fontFamily:"monospace" },
-  textarea:     { background:"#111", color:"#0f0", border:"1px solid #0f0", padding:"0.5rem", fontFamily:"monospace", height:60, resize:"none" },
-  actions:      { display:"flex", justifyContent:"space-between", marginTop:"0.5rem" },
-  button:       { background:"transparent", color:"#0f0", border:"1px solid #0f0", padding:"0.4rem 1rem", cursor:"pointer", fontFamily:"monospace" }
-};
+// Custom hook to check media query
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia(query);
+    const listener = (event) => setMatches(event.matches);
+    mediaQueryList.addEventListener('change', listener);
+    return () => mediaQueryList.removeEventListener('change', listener);
+  }, [query]);
+  return matches;
+}
+
+function getRandomElement(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}

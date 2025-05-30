@@ -1,123 +1,167 @@
-// src/pages/Access1.jsx
-import React, { useState, useEffect, useRef } from 'react';
+// src/pages/Access2.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEcho } from '../context/EchoContext';
+import './Access2.css';
 
-const QUOTES = [
-  { text: "Good design is honest.", author: "Dieter Rams" },
-  { text: "Design is the silent ambassador of your brand.", author: "Paul Rand" },
-  { text: "Design is thinking made visual.", author: "Saul Bass" },
-  { text: "A designer knows he has achieved perfection not when there is nothing left to add, but when there is nothing left to take away.", author: "Antoine de Saint-Exupéry" },
-  { text: "Less, but better.", author: "Dieter Rams" },
-  { text: "Styles come and go. Good design is a language, not a style.", author: "Massimo Vignelli" },
-  { text: "Design is intelligence made visible.", author: "Alina Wheeler" }
+const TARGET = 'TAKE AWAY';
+const MAX_WRONG = 6;
+const KEYBOARD_LAYOUT = [
+  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+  ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
 ];
+const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+const SYNONYMS = ['remove', 'extract', 'seize', 'abduct', 'eliminate', 'withdraw', 'detach', 'usurp'];
 
-// ROT13 utility
-function rot13(str) {
-  return str.replace(/[A-Za-z]/g, c =>
-    String.fromCharCode(
-      (c <= 'Z' ? 90 : 122),
-      (c.charCodeAt(0) + 13) % (c <= 'Z' ? 65 : 97)
-    )
-  );
+function getRandomElement(array) {
+  return array[Math.floor(Math.random() * array.length)];
 }
 
-export default function Access1() {
+export default function Access2() {
   const { setWhisper } = useEcho();
   const navigate = useNavigate();
-  const PHRASE = "TAKE AWAY";
-  const SLOTS = PHRASE.replace(' ', '').length + 1; // count letters + space slot
-  
-  const [quote, setQuote] = useState(null);
-  const [display, setDisplay] = useState([]);    // array of revealed letters ('' or char)
-  const [cursor, setCursor] = useState(0);       // how many letters correct so far
-  const containerRef = useRef();
 
-  // pick a random quote and mask it
+  const [reveal, setReveal] = useState(
+    TARGET.split('').map(ch => (ch === ' ' ? ' ' : '_'))
+  );
+  const [wrong, setWrong] = useState(0);
+  const [tried, setTried] = useState([]);
+  const [status, setStatus] = useState('ready');
+  const [highlightedKey, setHighlightedKey] = useState('');
+  const [hintTimer, setHintTimer] = useState(null);
+
   useEffect(() => {
-    const pick = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    // remove the phrase "take away" (case-insensitive) and ROT13 the rest
-    const rx = new RegExp(PHRASE, 'i');
-    const masked = pick.text.replace(rx, '==PHRASE==');
-    const encoded = rot13(masked);
-    setQuote({ author: pick.author, encoded });
-    setDisplay(Array(PHRASE.length).fill(''));
-    setWhisper('DECODE THE SIGNAL');
+    setWhisper('ECHO PUZZLE 2: UNLOCK LETTERS');
+
+    const initialHintTimeout = setTimeout(() => {
+      setWhisper('... a breathy sound might appear...'); // Initial vowel hint
+    }, 5000);
+    setHintTimer(initialHintTimeout);
+
+    return () => clearTimeout(initialHintTimeout);
   }, [setWhisper]);
 
-  // handle keypresses
-  useEffect(() => {
-    const handler = (e) => {
-      if (cursor >= PHRASE.length) return;
-      const expected = PHRASE[cursor];
-      const pressed = e.key.toUpperCase();
-      // allow space
-      if (expected === ' ' && pressed === ' ') {
-        advance();
-      } else if (pressed === expected) {
-        advance();
-      } else if (e.key.length === 1) {
-        // wrong printable key
-        containerRef.current?.classList.add('shake');
-        setWhisper('TRY AGAIN');
-        setTimeout(() => containerRef.current?.classList.remove('shake'), 300);
+  const triggerHint = () => {
+    clearTimeout(hintTimer);
+    if (status === 'ready' && wrong < MAX_WRONG && reveal.join('') !== TARGET) {
+      if (Math.random() < 0.5) {
+        const unguessedVowels = VOWELS.filter(v => !tried.includes(v) && TARGET.includes(v));
+        if (unguessedVowels.length > 0) {
+          setWhisper(`... perhaps a ${getRandomElement(['soft', 'open', 'airy'])} sound resonates...`); // Vowel
+        } else {
+          const unguessedConsonants = KEYBOARD_LAYOUT.flat().filter(
+            c => !VOWELS.includes(c) && !tried.includes(c) && TARGET.includes(c)
+          );
+          if (unguessedConsonants.length > 0) {
+            setWhisper(`... a more ${getRandomElement(['firm', 'stopped', 'sharp'])} echo returns...`); // Consonant
+          } else {
+            setWhisper('... the silence holds a faint trace...'); // Last resort
+          }
+        }
+      } else {
+        const chosenSynonym = getRandomElement(SYNONYMS);
+        setWhisper(`... the echo suggests to ${chosenSynonym} something...`); // Synonym hint
       }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [cursor, setWhisper]);
-
-  const advance = () => {
-    const next = [...display];
-    next[cursor] = PHRASE[cursor];
-    setDisplay(next);
-    setCursor(cursor + 1);
-
-    if (cursor + 1 === PHRASE.length) {
-      setWhisper('PHRASE COMPLETE');
-      setTimeout(() => navigate('/access-2'), 1000);
+      const newHintTimer = setTimeout(triggerHint, 8000 + Math.random() * 5000);
+      setHintTimer(newHintTimer);
     }
   };
 
-  if (!quote) return null;
+  useEffect(() => {
+    const recurringHintTimer = setTimeout(triggerHint, 10000);
+    setHintTimer(recurringHintTimer);
+    return () => clearTimeout(recurringHintTimer);
+  }, [status, wrong, reveal]);
+
+  const handleGuess = (letter) => {
+    const upperLetter = letter.toUpperCase();
+    if (status !== 'ready' || tried.includes(upperLetter)) {
+      return;
+    }
+
+    setTried(t => [...t, upperLetter]);
+
+    if (TARGET.includes(upperLetter)) {
+      setReveal(r =>
+        r.map((ch, i) => (TARGET[i] === upperLetter ? upperLetter : ch))
+      );
+      setWhisper(`REVEALED: ${upperLetter}`);
+    } else {
+      setWrong(w => w + 1);
+      setWhisper(`WRONG: ${upperLetter}`);
+      setStatus('fail');
+      setTimeout(() => setStatus('ready'), 300);
+    }
+  };
+
+  const handleKeyboardInput = (key) => {
+    if (status === 'ready') {
+      if (KEYBOARD_LAYOUT.flat().includes(key.toUpperCase())) {
+        handleGuess(key);
+        setHighlightedKey(key.toUpperCase());
+        setTimeout(() => setHighlightedKey(''), 300);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (reveal.join('') === TARGET) {
+      setStatus('success');
+      setWhisper('ACCESS GRANTED');
+      clearTimeout(hintTimer);
+      setTimeout(() => navigate('/access-3'), 1000);
+    } else if (wrong >= MAX_WRONG) {
+      setStatus('dead');
+      setWhisper('SYSTEM LOCKED');
+      clearTimeout(hintTimer);
+    }
+  }, [reveal, wrong, setWhisper, navigate, hintTimer]);
 
   return (
-    <main
-      ref={containerRef}
-      style={{
-        backgroundColor: '#000',
-        color: '#0f0',
-        fontFamily: 'monospace',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '2rem',
-        textAlign: 'center'
-      }}
-    >
-      <p style={{ marginBottom: '1rem', whiteSpace: 'pre-wrap' }}>
-        {quote.encoded.replace('==PHRASE==', '█'.repeat(PHRASE.length))}
+    <main className="access2-container">
+      <h1 className="access2-title">&gt; ECHO PUZZLE 2</h1>
+      <p className="access2-subtitle">
+        Guess the letters to reveal the secret phrase.
       </p>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
-        {display.map((ch, i) => (
-          <div
-            key={i}
-            style={{
-              width: '1.2ch',
-              borderBottom: '1px solid #0f0',
-              fontSize: '1.5rem'
-            }}
-          >
-            {ch || (PHRASE[i] === ' ' ? '\u00A0' : '')}
+
+      <div className="access2-hangman">
+        {reveal.map((ch, i) => (
+          <span key={i} className="access2-letter">{ch}</span>
+        ))}
+      </div>
+
+      <div className="access2-keyboard">
+        {KEYBOARD_LAYOUT.map((row, index) => (
+          <div key={index} className="access2-keyboard-row">
+            {row.map((key) => (
+              <button
+                key={key}
+                className={`access2-keyboard-key ${highlightedKey === key ? 'highlight' : ''} ${tried.includes(key) ? 'tried' : ''}`}
+                onClick={() => handleKeyboardInput(key)}
+                disabled={status !== 'ready' || tried.includes(key)}
+              >
+                {key}
+              </button>
+            ))}
           </div>
         ))}
       </div>
-      <p style={{ fontSize: '0.8rem', color: '#666' }}>
-        (Type the missing phrase — one correct key at a time)
+
+      <p className="access2-info">
+        Tried: {tried.join(', ') || 'none'}<br/>
+        Wrong: {wrong} / {MAX_WRONG}
       </p>
+
+      {status === 'success' && (
+        <p className="access2-success">✓ Phrase revealed!</p>
+      )}
+      {status === 'fail' && (
+        <p className="access2-fail">✗ No “{tried.slice(-1)[0]}” in there.</p>
+      )}
+      {status === 'dead' && (
+        <p className="access2-dead">Too many wrong—access denied.</p>
+      )}
     </main>
   );
 }

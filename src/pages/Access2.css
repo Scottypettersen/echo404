@@ -1,0 +1,250 @@
+/* src/pages/Access2.css */
+
+/* Base Styles (applied to all screen sizes initially) */
+.access2-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #000;
+  color: #0f0;
+  font-family: monospace, sans-serif;
+  min-height: 100vh;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.access2-title {
+  font-size: 1.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.access2-subtitle {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.access2-hangman {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  letter-spacing: 0.6rem;
+}
+
+.access2-letter {
+  display: inline-block;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.access2-keyboard {
+  margin-bottom: 1rem;
+  width: 95%;
+  max-width: 350px; /* Smaller default max-width for mobile-first approach */
+}
+
+.access2-keyboard-row {
+  display: flex;
+  gap: 0.2rem;
+  margin-bottom: 0.2rem;
+  justify-content: center;
+}
+
+.access2-keyboard-key {
+  background-color: #222;
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 0.5rem 0.6rem;
+  font-family: monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+  min-width: 18px;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.access2-keyboard-key:hover:enabled {
+  background-color: #444;
+}
+
+.access2-keyboard-key:disabled {
+  color: #555;
+  border-color: #555;
+  background-color: #1a1a1a;
+  cursor: default;
+}
+
+.access2-keyboard-key.highlight {
+  background-color: #0ff;
+  color: #000;
+}
+
+.access2-keyboard-key.tried {
+  color: #aaa;
+  border-color: #aaa;
+  background-color: #333;
+}
+
+.access2-info {
+  font-size: 0.6rem;
+  color: #666;
+  margin-bottom: 0.8rem;
+}
+
+.access2-success,
+.access2-fail,
+.access2-dead {
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-top: 0.8rem;
+}
+
+/* === ECHO WHISPER STYLE === */
+.echo-whisper,
+.hint-container {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  padding: 0.5rem 0.8rem;
+  border-radius: 5px;
+  font-family: monospace, sans-serif;
+  font-size: 0.7rem;
+  text-align: center;
+  z-index: 1000;
+  width: 95%;
+  max-width: 350px;
+  box-sizing: border-box;
+  margin-top: 1rem;
+}
+
+.hint-container p {
+  margin: 0.2rem 0;
+  color: #00ff00;
+}
+
+.hint-container .transmission-label {
+  color: #00cc00;
+  font-weight: bold;
+}
+
+/* Styles for larger mobile devices (min-width: 361px) */
+@media (min-width: 361px) and (max-width: 600px) {
+  .access2-title {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .access2-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .access2-hangman {
+    font-size: 2rem;
+    margin-bottom: 1.2rem;
+    letter-spacing: 0.8rem;
+  }
+
+  .access2-keyboard {
+    margin-bottom: 1.2rem;
+    max-width: 400px;
+  }
+
+  .access2-keyboard-row {
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .access2-keyboard-key {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.8rem;
+    min-width: 22px;
+  }
+
+  .access2-info {
+    font-size: 0.7rem;
+    margin-bottom: 1rem;
+  }
+
+  .access2-success,
+  .access2-fail,
+  .access2-dead {
+    font-size: 0.9rem;
+    margin-top: 1rem;
+  }
+
+  .echo-whisper,
+  .hint-container {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    max-width: 400px;
+    bottom: 15px;
+    margin-top: 1.2rem;
+  }
+}
+
+/* Styles for desktop (min-width: 960px) */
+@media (min-width: 960px) {
+  .access2-container {
+    padding: 3rem;
+  }
+
+  .access2-title {
+    font-size: 2.8rem;
+    margin-bottom: 2rem;
+  }
+
+  .access2-subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .access2-hangman {
+    font-size: 3rem;
+    margin-bottom: 2.5rem;
+    letter-spacing: 1.2rem;
+  }
+
+  .access2-keyboard {
+    margin-bottom: 2.5rem;
+    max-width: 700px; /* Wider keyboard on desktop */
+  }
+
+  .access2-keyboard-row {
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .access2-keyboard-key {
+    padding: 1.2rem 1.8rem;
+    font-size: 1.4rem;
+    min-width: 50px;
+  }
+
+  .access2-info {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+
+  .access2-success,
+  .access2-fail,
+  .access2-dead {
+    font-size: 1.3rem;
+    margin-top: 1.5rem;
+  }
+
+  .echo-whisper,
+  .hint-container {
+    bottom: 50px;
+    padding: 1.5rem 3rem;
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin-top: 2.5rem;
+  }
+}

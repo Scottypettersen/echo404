@@ -1,0 +1,139 @@
+/* src/pages/Access.css */
+.access-container {
+  background-color: #000;
+  color: #0f0;
+  font-family: monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.access-title {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+}
+
+.password-display {
+  margin-bottom: 2rem;
+}
+
+.password-input {
+  background-color: #1a1a1a;
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 0.75rem;
+  font-size: 1.2rem;
+  font-family: monospace;
+  border-radius: 5px;
+  width: 80%;
+  max-width: 250px;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem; /* Reduced gap for smaller screens */
+  margin-bottom: 2rem;
+}
+
+.keyboard-row {
+  display: flex;
+  gap: 0.3rem; /* Reduced gap for smaller screens */
+}
+
+.keyboard-key {
+  background-color: #222;
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 0.7rem 0.9rem; /* Slightly smaller padding */
+  font-size: 1rem;
+  font-family: monospace;
+  cursor: pointer;
+  border-radius: 5px;
+  min-width: 25px; /* Reduced minimum width for smaller screens */
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.keyboard-key:hover {
+  background-color: #444;
+}
+
+.keyboard-key:active {
+  background-color: #555;
+}
+
+.keyboard-key.enter-key {
+  min-width: 60px; /* Slightly smaller ENTER */
+}
+
+.keyboard-key.del-key {
+  background-color: #444;
+}
+
+.keyboard-key.del-key:hover {
+  background-color: #666;
+}
+
+.keyboard-key.del-key:active {
+  background-color: #777;
+}
+
+.keyboard-key.highlight {
+  background-color: #0ff; /* Cyan highlight */
+  color: #000;
+}
+
+.feedback {
+  color: #ff0;
+  font-size: 1.1rem;
+  margin-top: 2rem;
+}
+
+.instruction {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 2rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  .access-title {
+    font-size: 1.5rem;
+  }
+
+  .password-input {
+    font-size: 0.9rem;
+    max-width: 180px;
+  }
+
+  .keyboard {
+    gap: 0.2rem; /* Further reduced gap */
+  }
+
+  .keyboard-row {
+    gap: 0.2rem; /* Further reduced gap */
+  }
+
+  .keyboard-key {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+    min-width: 20px; /* Further reduced min-width */
+  }
+}
+
+/* Further adjustments for very small screens */
+@media (max-width: 320px) {
+  .keyboard-key {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.7rem;
+    min-width: 18px;
+  }
+}

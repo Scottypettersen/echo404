@@ -1,0 +1,107 @@
+/* src/pages/Access3.css */
+
+/* Base styles for all devices */
+.access3-container {
+  background-color: #000;
+  color: #0f0;
+  font-family: monospace;
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.access3-title {
+  font-size: 2rem; /* Larger title for emphasis */
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.access3-subtitle {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.access3-tiles-container {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin-bottom: 2rem;
+}
+
+.access3-tile {
+  background-color: #111;
+  color: #0f0;
+  border: 2px solid #0f0; /* Thicker border for better visibility */
+  font-size: 2.5rem; /* Large font size for easy reading/tapping */
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: grab;
+  margin: 0.5rem; /* Spacing between tiles */
+}
+
+.access3-tile[draggable="false"] {
+  cursor: default;
+  opacity: 0.7; /* Slightly fade when solved */
+}
+
+.access3-solved {
+  color: #0f0;
+  font-size: 1.2rem;
+  margin-top: 1rem;
+}
+
+/* Desktop specific styles (larger screens) */
+@media (min-width: 601px) {
+  .access3-tiles-container {
+    gap: 1.5rem; /* Wider gap on desktop */
+  }
+
+  .access3-title {
+    font-size: 2.5rem;
+  }
+
+  .access3-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .access3-tile {
+    width: 100px;
+    height: 100px;
+    font-size: 3rem;
+    margin: 0.75rem;
+  }
+}
+
+/* Mobile specific styles (smaller screens) */
+@media (max-width: 600px) {
+  .access3-title {
+    font-size: 1.8rem;
+  }
+
+  .access3-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .access3-tiles-container {
+    flex-direction: row; /* Keep horizontal on mobile for single-hand drag */
+    flex-wrap: wrap; /* Allow wrapping if screen is narrow */
+    justify-content: center; /* Center tiles on mobile */
+    gap: 1rem;
+  }
+
+  .access3-tile {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+    margin: 0.3rem;
+  }
+}

@@ -1,0 +1,361 @@
+/* src/pages/Wall.css */
+
+/* Base styles for all devices (Mobile First) */
+:root {
+  --base-bg: #000;
+  --base-text: #0f0;
+  --accent-color: #0ff;
+  --subtle-text: #666;
+  --border-color: #0f0;
+  --tile-empty-bg: #111;
+  --tile-claimed-text: #000;
+  --tile-size-mobile: 20px; /* Default mobile tile size */
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.wall-container {
+  background: var(--base-bg);
+  color: var(--base-text);
+  font-family: 'Inter', monospace, sans-serif;
+  min-height: 100vh;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.loading-auth,
+.auth-failed {
+  color: var(--base-text);
+  font-family: monospace;
+  font-size: 1.2rem;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--base-bg);
+}
+
+.auth-failed {
+  color: #f00;
+}
+
+.wall-title {
+  margin: 0.5rem 0 0.5rem;
+  font-size: 2rem; /* Smaller mobile title */
+  text-align: center;
+  color: var(--accent-color);
+  text-shadow: 0 0 5px var(--accent-color);
+}
+
+.wall-subtitle {
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.85rem; /* Smaller mobile subtitle */
+  color: var(--subtle-text);
+}
+
+.grid-wrapper {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* Start aligned for mobile panning */
+  align-items: flex-start;
+  overflow-x: auto; /* Horizontal panning for wide grid */
+  overflow-y: scroll; /* Vertical scrolling for rows */
+  -webkit-overflow-scrolling: touch;
+  border: none; /* No border on mobile */
+  box-shadow: none; /* No shadow on mobile */
+  padding: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1px;
+  --tile-size: var(--tile-size-mobile);
+  grid-template-columns: repeat(40, var(--tile-size)); /* Explicit columns for mobile */
+  grid-auto-rows: var(--tile-size); /* Implicit row height for mobile */
+  width: calc(40 * var(--tile-size)); /* Full width for panning */
+  height: auto; /* Auto height for scrolling */
+}
+
+.tile {
+  width: var(--tile-size);
+  height: var(--tile-size);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem; /* Smaller mobile font */
+  font-weight: bold;
+  user-select: none;
+  cursor: pointer;
+  transition: background-color 0.1s ease-out, transform 0.1s ease-out;
+  border-radius: 1px; /* Smaller mobile border radius */
+}
+
+.tile:hover:not(.claimed):not(.cannot-claim) {
+  background-color: rgba(0, 255, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.tile.empty {
+  background-color: var(--tile-empty-bg);
+  color: transparent;
+}
+
+.tile.claimed {
+  color: var(--tile-claimed-text);
+  background-color: var(--base-text);
+  border-color: var(--base-text);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.tile.cannot-claim {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: #333;
+}
+
+.tile.my-claimed-tile {
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 8px var(--accent-color);
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    box-shadow: 0 0 8px var(--accent-color);
+  }
+  to {
+    box-shadow: 0 0 15px var(--accent-color);
+  }
+}
+
+/* Modal styles - Mobile First */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+.modal-box {
+  background: var(--base-bg);
+  color: var(--base-text);
+  padding: 1rem; /* Smaller mobile padding */
+  border: 1px solid var(--border-color); /* Thinner mobile border */
+  border-radius: 8px; /* Smaller mobile border radius */
+  width: 90%;
+  max-width: 360px; /* Smaller mobile max width */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Smaller mobile gap */
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* Softer mobile glow */
+}
+
+.modal-box h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem; /* Smaller mobile margin */
+  color: var(--accent-color);
+  text-shadow: 0 0 3px var(--accent-color);
+  font-size: 1.5rem; /* Smaller mobile heading */
+}
+
+.modal-box p {
+  margin: 0.1rem 0; /* Smaller mobile paragraph margin */
+  font-size: 0.9rem; /* Smaller mobile paragraph font */
+}
+
+.modal-form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem; /* Smaller mobile gap */
+}
+
+.modal-input,
+.modal-textarea {
+  background: #0d0d0d;
+  color: var(--base-text);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem; /* Smaller mobile padding */
+  font-family: monospace;
+  border-radius: 4px;
+  flex-grow: 1;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.9rem; /* Smaller mobile input font */
+}
+
+.modal-input:focus,
+.modal-textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 5px var(--accent-color);
+}
+
+.modal-color-input {
+  width: 2rem; /* Smaller mobile color input */
+  height: 2rem; /* Smaller mobile color input */
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  background-color: transparent;
+  overflow: hidden;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  transition: transform 0.2s ease;
+}
+
+.modal-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.modal-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+.modal-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.modal-color-input:hover {
+  transform: scale(1.1);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem; /* Smaller mobile margin */
+}
+
+.modal-button {
+  background: transparent;
+  color: var(--base-text);
+  border: 1px solid var(--border-color);
+  padding: 0.4rem 0.8rem; /* Smaller mobile padding */
+  cursor: pointer;
+  font-family: monospace;
+  border-radius: 5px;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.9rem; /* Smaller mobile button font */
+}
+
+.modal-button:hover:enabled {
+  background-color: var(--base-text);
+  color: var(--base-bg);
+  box-shadow: 0 0 5px var(--base-text);
+}
+
+.modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-button.primary-button {
+  background-color: var(--accent-color);
+  color: var(--base-bg);
+  border-color: var(--accent-color);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.modal-button.primary-button:hover:enabled {
+  background-color: var(--base-text);
+  border-color: var(--base-text);
+  box-shadow: 0 0 8px var(--base-text);
+}
+
+/* Desktop specific styles (min-width: 601px) */
+@media (min-width: 601px) {
+  :root {
+    --tile-size-desktop: 30px; /* Desktop override */
+  }
+
+  .wall-title {
+    font-size: 2.5rem; /* Larger desktop title */
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .wall-subtitle {
+    font-size: 1rem; /* Larger desktop subtitle */
+    margin-bottom: 1.5rem;
+  }
+
+  .grid-wrapper {
+    justify-content: center; /* Center grid on desktop */
+    align-items: center;
+    overflow: auto; /* Standard desktop scrolling */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    padding: 5px;
+  }
+
+  .grid {
+    --tile-size: var(--tile-size-desktop);
+    grid-template-columns: repeat(40, var(--tile-size)); /* Explicit columns for desktop */
+    grid-auto-rows: var(--tile-size); /* Implicit row height for desktop */
+    width: auto; /* Auto width for centering */
+    height: auto;
+  }
+
+  .tile {
+    font-size: 0.6rem; /* Larger desktop font */
+    border-radius: 2px; /* Larger desktop border radius */
+  }
+
+  .modal-box {
+    padding: 1.5rem; /* Larger desktop padding */
+    border-width: 2px; /* Thicker desktop border */
+    border-radius: 10px; /* Larger desktop border radius */
+    max-width: 400px; /* Larger desktop max width */
+    gap: 1rem; /* Larger desktop gap */
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.7); /* Stronger desktop glow */
+  }
+
+  .modal-box h2 {
+    font-size: 2rem; /* Larger desktop heading */
+    margin-bottom: 0.8rem;
+  }
+
+  .modal-box p {
+    font-size: 1rem; /* Larger desktop paragraph font */
+    margin: 0.2rem 0;
+  }
+
+  .modal-input,
+  .modal-textarea {
+    padding: 0.6rem; /* Larger desktop padding */
+    border-width: 1px;
+    font-size: 1rem; /* Larger desktop input font */
+    border-radius: 4px;
+  }
+
+  .modal-button {
+    padding: 0.6rem 1.2rem; /* Larger desktop padding */
+    border-width: 1px;
+    border-radius: 5px;
+    font-size: 1rem; /* Larger desktop button font */
+  }
+
+  .modal-color-input {
+    width: 2.5rem; /* Larger desktop color input */
+    height: 2.5rem; /* Larger desktop color input */
+  }
+}

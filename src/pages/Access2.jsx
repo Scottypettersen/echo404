@@ -1,157 +1,219 @@
 // src/pages/Access2.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEcho } from '../context/EchoContext';
+import './Access2.css';
 
 const TARGET = 'TAKE AWAY';
 const MAX_WRONG = 6;
+const KEYBOARD_LAYOUT = [
+  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+  ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
+];
 
-export default function Access2() {
+function getRandomElement(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function Access2() {
   const { setWhisper } = useEcho();
   const navigate = useNavigate();
-  const inputRef = useRef();
-
-  // reveal state: array of '_' or letter
+  const isPhone = useMediaQuery('(max-width: 600px)');
+  const answerInputRef = useRef(null);
+  const [typedAnswer, setTypedAnswer] = useState('');
   const [reveal, setReveal] = useState(
     TARGET.split('').map(ch => (ch === ' ' ? ' ' : '_'))
   );
   const [wrong, setWrong] = useState(0);
-  const [tried, setTried] = useState([]); // letters already guessed
-  const [status, setStatus] = useState('ready'); // ready | fail | success | dead
+  const [tried, setTried] = useState([]);
+  const [status, setStatus] = useState('ready');
+  const [highlightedKey, setHighlightedKey] = useState('');
+  const hintTimerRef = useRef(null);
 
-  // focus the single-character input on mount
+  const triggerHint = useCallback(() => {
+    clearTimeout(hintTimerRef.current);
+    if (status === 'ready' && wrong < MAX_WRONG && reveal.join('') !== TARGET) {
+      const hintDelay = 10000 + Math.random() * 7000;
+      const hints = {
+        stripAway: [`... try peeling it off...`, `... a piece might slide away...`, `... gently remove it...`],
+        lossDeprivation: [`... a feeling of something gone...`, `... what's being subtracted?...`, `... the absence of something...`],
+        insightConclusion: [`... what remains after taking? ...`, `... the result of a removal...`, `... consider the remainder...`],
+        emotionalExistential: [`... letting go of a part...`, `... the act of separating...`, `... reducing the whole...`],
+        length: [`... two parts: ${TARGET.split(' ')[0].length} and ${TARGET.split(' ')[1].length}...`, `... a shorter and then a longer...`],
+      };
+      const category = getRandomElement(Object.keys(hints));
+      setWhisper(`... transmission received: ${getRandomElement(hints[category])}`);
+      hintTimerRef.current = setTimeout(triggerHint, hintDelay);
+    }
+  }, [status, wrong, reveal, setWhisper, TARGET]);
+
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    const recurringHintTimer = setTimeout(triggerHint, 12000);
+    hintTimerRef.current = recurringHintTimer;
+    return () => clearTimeout(recurringHintTimer);
+  }, [triggerHint]);
 
-  const handleGuess = e => {
-    e.preventDefault();
-    const letter = e.target.letter.value.toUpperCase();
-    e.target.letter.value = '';
-    if (!letter.match(/^[A-Z]$/)) return;
-    if (tried.includes(letter) || status !== 'ready') return;
+  useEffect(() => {
+    setWhisper(isPhone ? 'ECHO PUZZLE 2: TAP TO GUESS' : 'ECHO PUZZLE 2: TYPE OR GUESS');
+    const initialHintTimeout = setTimeout(() => {
+      setWhisper(isPhone ? '... try tapping the letters...' : '... input the phrase or guess letters...');
+    }, 6000);
+    hintTimerRef.current = initialHintTimeout;
+    if (!isPhone && answerInputRef.current) {
+      answerInputRef.current.focus();
+    }
+    return () => clearTimeout(initialHintTimeout);
+  }, [setWhisper, isPhone]);
 
-    setTried(t => [...t, letter]);
-
-    if (TARGET.includes(letter)) {
-      // reveal all occurrences
-      setReveal(r =>
-        r.map((ch, i) => (TARGET[i] === letter ? letter : ch))
-      );
-      setWhisper(`REVEALED: ${letter}`);
-    } else {
+  const handleGuess = useCallback((letter) => {
+    const upperLetter = letter.toUpperCase();
+    if (status !== 'ready' || tried.includes(upperLetter)) return;
+    setTried(t => [...t, upperLetter]);
+    const isCorrect = TARGET.includes(upperLetter);
+    setReveal(r => r.map((char, i) => (TARGET[i] === upperLetter ? upperLetter : char)));
+    setWhisper(isCorrect ? `REVEALED: ${upperLetter}` : `WRONG: ${upperLetter}`);
+    if (!isCorrect) {
       setWrong(w => w + 1);
-      setWhisper(`WRONG: ${letter}`);
       setStatus('fail');
       setTimeout(() => setStatus('ready'), 300);
     }
+  }, [status, tried, TARGET, setWhisper, setReveal, setWrong, setStatus]);
+
+  const handleKeyboardInput = useCallback((key) => {
+    if (status === 'ready') {
+      const upperKey = key.toUpperCase();
+      setHighlightedKey(upperKey);
+      setTimeout(() => setHighlightedKey(''), 300);
+      if (KEYBOARD_LAYOUT.flat().includes(upperKey)) {
+        handleGuess(key);
+      }
+    }
+  }, [status, handleGuess]);
+
+  const handleInputChange = (event) => {
+    setTypedAnswer(event.target.value.toUpperCase());
   };
 
-  // watch for game end
+  const handleSubmitAnswer = useCallback(() => {
+    if (status === 'ready' && !isPhone && typedAnswer.trim() !== '') {
+      const guess = typedAnswer.trim();
+      if (guess === TARGET) {
+        setReveal(TARGET.split(''));
+        setStatus('success');
+        setWhisper('ACCESS GRANTED');
+        clearTimeout(hintTimerRef.current);
+        setTimeout(() => navigate('/access-3'), 1000);
+      } else {
+        setWrong(w => w + 1);
+        setWhisper(`INCORRECT GUESS: ${guess}`);
+        setStatus('fail');
+        setTimeout(() => setStatus('ready'), 300);
+      }
+      setTypedAnswer('');
+      if (answerInputRef.current) answerInputRef.current.focus();
+    }
+  }, [status, typedAnswer, TARGET, setWhisper, setReveal, setWrong, setStatus, navigate, isPhone]);
+
+  const handleKeyDown = useCallback((event) => {
+    if (status === 'ready' && !isPhone && event.key === 'Enter' && typedAnswer.trim() !== '') {
+      handleSubmitAnswer();
+    } else if (status === 'ready' && !isPhone && KEYBOARD_LAYOUT.flat().includes(event.key.toUpperCase()) && !tried.includes(event.key.toUpperCase()) && document.activeElement !== answerInputRef.current) {
+      handleGuess(event.key);
+    }
+  }, [status, typedAnswer, handleSubmitAnswer, isPhone, handleGuess, tried]);
+
   useEffect(() => {
     if (reveal.join('') === TARGET) {
       setStatus('success');
       setWhisper('ACCESS GRANTED');
+      clearTimeout(hintTimerRef.current);
       setTimeout(() => navigate('/access-3'), 1000);
     } else if (wrong >= MAX_WRONG) {
       setStatus('dead');
       setWhisper('SYSTEM LOCKED');
+      clearTimeout(hintTimerRef.current);
     }
-  }, [reveal, wrong, setWhisper, navigate]);
+  }, [reveal, wrong, setWhisper, navigate, TARGET]);
 
   return (
-    <main style={styles.container}>
-      <h1 style={styles.title}>> ECHO PUZZLE 2</h1>
-      <p style={styles.subtitle}>
-        Guess the letters to reveal the secret phrase.
+    <main className="access2-container">
+      <h1 className="access2-title">&gt; ECHO PUZZLE 2</h1>
+      <p className="access2-subtitle">
+        {isPhone
+          ? 'Tap the on-screen keyboard to guess letters.'
+          : 'Type letters or the full phrase using your keyboard.'}
       </p>
 
-      <div style={styles.hangman}>
+      <div className="access2-hangman">
         {reveal.map((ch, i) => (
-          <span key={i} style={styles.letter}>{ch}</span>
+          <span key={i} className="access2-letter">{ch}</span>
         ))}
       </div>
 
-      {status === 'dead' ? (
-        <p style={styles.dead}>Too many wrong—access denied.</p>
-      ) : (
-        <form onSubmit={handleGuess} style={styles.form}>
-          <input
-            ref={inputRef}
-            name="letter"
-            maxLength={1}
-            disabled={status !== 'ready'}
-            style={styles.input}
-            autoComplete="off"
-          />
-          <button type="submit" style={styles.button} disabled={status!=='ready'}>
-            Guess
-          </button>
-        </form>
+      {isPhone && (
+        <div className="access2-keyboard">
+          {KEYBOARD_LAYOUT.map((row, index) => (
+            <div key={index} className="access2-keyboard-row">
+              {row.map((key) => (
+                <button
+                  key={key}
+                  className={`access2-keyboard-key ${highlightedKey === key ? 'highlight' : ''} ${tried.includes(key) ? 'tried' : ''}`}
+                  onClick={() => handleKeyboardInput(key)}
+                  disabled={status !== 'ready' || tried.includes(key)}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
 
-      <p style={styles.info}>
-        Tried: {tried.join(', ') || 'none'}<br/>
-        Wrong: {wrong} / {MAX_WRONG}
+      {!isPhone && (
+        <div className="access2-input-area">
+          <input
+            ref={answerInputRef}
+            type="text"
+            className="access2-answer-input"
+            placeholder="Type full answer"
+            value={typedAnswer}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            disabled={status !== 'ready'}
+          />
+          <button
+            className="access2-submit-button"
+            onClick={handleSubmitAnswer}
+            disabled={status !== 'ready' || typedAnswer.trim() === ''}
+          >
+            Submit Answer
+          </button>
+        </div>
+      )}
+
+      <p className="access2-info">
+        {isPhone
+          ? `Wrong: ${wrong} / ${MAX_WRONG}`
+          : `Tried: ${tried.join(', ') || 'none'}<br/>Wrong: ${wrong} / ${MAX_WRONG}`}
       </p>
 
-      {status === 'success' && (
-        <p style={styles.success}>✓ Phrase revealed!</p>
-      )}
-      {status === 'fail' && (
-        <p style={styles.fail}>✗ No “{tried.slice(-1)[0]}” in there.</p>
-      )}
+      {status === 'success' && <p className="access2-success">✓ Phrase revealed!</p>}
+      {status === 'fail' && <p className="access2-fail">✗ Incorrect guess.</p>}
+      {status === 'dead' && <p className="access2-dead">Too many wrong—access denied.</p>}
     </main>
   );
 }
 
-const styles = {
-  container: {
-    backgroundColor: '#000',
-    color: '#0f0',
-    fontFamily: 'monospace',
-    height: '100vh',
-    padding: '2rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  title: {
-    margin: 0,
-    marginBottom: '1rem',
-  },
-  subtitle: {
-    marginBottom: '1.5rem',
-    color: '#666',
-  },
-  hangman: {
-    display: 'flex',
-    gap: '0.5rem',
-    fontSize: '2rem',
-    marginBottom: '1.5rem',
-  },
-  letter: {
-    width: '1ch',
-    borderBottom: '2px solid #0f0',
-    textAlign: 'center'
-  },
-  form: { display: 'flex', gap: '1rem', marginBottom: '1rem' },
-  input: {
-    width: '2rem',
-    fontSize: '1.5rem',
-    textAlign: 'center',
-    background: '#000',
-    color: '#0f0',
-    border: '1px solid #0f0'
-  },
-  button: {
-    border: '1px solid #0f0',
-    background: 'transparent',
-    color: '#0f0',
-    cursor: 'pointer'
-  },
-  info: { fontSize: '0.9rem', marginTop: '1rem', color: '#666' },
-  success: { color: '#0f0', marginTop: '1rem' },
-  fail: { color: '#f00', marginTop: '0.5rem' },
-  dead: { color: '#f00', marginTop: '1rem' }
-};
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia(query);
+    const listener = (event) => setMatches(event.matches);
+    mediaQueryList.addEventListener('change', listener);
+    return () => mediaQueryList.removeEventListener('change', listener);
+  }, [query]);
+  return matches;
+}
+
+export default Access2;

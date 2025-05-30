@@ -1,265 +1,423 @@
 /* src/pages/Wall.css */
 
-/* Base styles for all devices (Mobile First) */
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Echo404 CRT Terminal Theme                      */
+/* ───────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --base-bg: #000;
-  --base-text: #0f0;
-  --accent-color: #0ff;
-  --subtle-text: #666;
-  --border-color: #0f0;
-  --tile-empty-bg: #111;
-  --tile-claimed-text: #000;
-  --tile-size-mobile: 20px; /* Default mobile tile size */
+  /* Monospace + terminal colors */
+  --font-family: 'Courier New', Courier, monospace;
+  --bg-color: #000;
+  --text-color: #33ff33;
+  --dim-text: rgba(51, 255, 51, 0.6);
+  --scanline-color: rgba(0, 0, 0, 0.1);
+
+  /* CRT glow */
+  --glow-color: rgba(51, 255, 51, 0.4);
+  --glow-strength: 2px;
+
+  /* Base tile size variables */
+  --tile-size-mobile: 30px; /* Adjusted for better mobile box size */
+  --tile-size-desktop: 20px; /* Adjusted for better desktop box size */
+  --grid-columns: 40; /* Define the number of columns in the grid */
+  --grid-rows-mobile: 25; /* Initial visible rows on mobile */
+  --grid-rows-desktop: 20; /* Initial visible rows on desktop */
 }
 
+/* Base styles for full-screen black background and CRT effects */
+html,
 body {
   margin: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.wall-container {
-  background: var(--base-bg);
-  color: var(--base-text);
-  font-family: 'Inter', monospace, sans-serif;
-  min-height: 100vh;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow: hidden;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: left;
+  overflow: hidden; /* Keep body overflow hidden for CRT effects */
+  position: relative;
   box-sizing: border-box;
 }
 
-.loading-auth,
-.auth-failed {
-  color: var(--base-text);
-  font-family: monospace;
-  font-size: 1.2rem;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--base-bg);
+/* Scanline overlay */
+body::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--scanline-color) 2px, var(--scanline-color) 4px);
+  z-index: 1000;
 }
 
-.auth-failed {
-  color: #f00;
+/* Subtle vignette */
+body::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  right: -10%;
+  bottom: -10%;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
+  z-index: 999;
+}
+
+/* Widespread glow effect */
+* {
+  text-shadow: 0 0 var(--glow-strength) var(--glow-color), 0 0 calc(var(--glow-strength) * 2) var(--glow-color);
+}
+
+/* Terminal headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: var(--font-family);
+  font-weight: normal;
+  letter-spacing: 1px;
+  color: var(--text-color);
+}
+
+/* Links appear dim, glow on hover */
+a {
+  color: var(--dim-text);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--text-color);
+}
+
+/* Buttons as old-school text prompts */
+button {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  color: var(--text-color);
+  background: transparent;
+  border: 1px solid var(--text-color);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s;
+}
+
+button:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+/* Inputs & textareas */
+input,
+textarea {
+  background: transparent;
+  border: 1px solid var(--dim-text);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  padding: 0.4rem;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--text-color);
+}
+
+/* Scrollbars (WebKit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--dim-text);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Keyframe “cursor blink” */
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Terminal cursor */
+.cursor {
+  display: inline-block;
+  width: 0.6ch;
+  background: var(--text-color);
+  animation: blink 1s steps(1) infinite;
+}
+
+/* ─────────────────────────────── */
+/* WALL STYLES           */
+/* ─────────────────────────────── */
+
+.wall-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* Align top to allow scrolling of the whole container if needed */
+  min-height: 100vh;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow: auto; /* Allow scrolling of the entire container if content overflows */
 }
 
 .wall-title {
-  margin: 0.5rem 0 0.5rem;
-  font-size: 2rem; /* Smaller mobile title */
-  text-align: center;
-  color: var(--accent-color);
-  text-shadow: 0 0 5px var(--accent-color);
+  font-size: 2rem;
+  margin-bottom: 1rem;
 }
 
 .wall-subtitle {
-  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--dim-text);
+  margin-bottom: 1.5rem;
   text-align: center;
-  font-size: 0.85rem; /* Smaller mobile subtitle */
-  color: var(--subtle-text);
+}
+
+.first-boot-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.first-boot-overlay.hidden {
+  opacity: 0;
+}
+
+.first-boot-message {
+  margin-bottom: 1rem;
+}
+
+.arrow-down-animation {
+  border: 2px solid var(--text-color);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+  animation: bounce 1s infinite alternate;
+}
+
+.arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-top: 0.7rem solid var(--text-color);
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(0.5rem);
+  }
 }
 
 .grid-wrapper {
-  flex-grow: 1;
   width: 100%;
-  display: flex;
-  justify-content: flex-start; /* Start aligned for mobile panning */
-  align-items: flex-start;
-  overflow-x: auto; /* Horizontal panning for wide grid */
-  overflow-y: scroll; /* Vertical scrolling for rows */
-  -webkit-overflow-scrolling: touch;
-  border: none; /* No border on mobile */
-  box-shadow: none; /* No shadow on mobile */
-  padding: 0;
+  box-sizing: border-box;
+  margin-bottom: 1rem; /* Add some margin below the grid */
 }
 
 .grid {
   display: grid;
   gap: 1px;
-  --tile-size: var(--tile-size-mobile);
-  grid-template-columns: repeat(40, var(--tile-size)); /* Explicit columns for mobile */
-  grid-auto-rows: var(--tile-size); /* Implicit row height for mobile */
-  width: calc(40 * var(--tile-size)); /* Full width for panning */
-  height: auto; /* Auto height for scrolling */
+  width: calc(var(--grid-columns) * var(--tile-size-mobile)); /* Full width for panning on mobile */
+  height: calc(var(--grid-rows-mobile) * var(--tile-size-mobile)); /* Initial height on mobile */
 }
 
 .tile {
   width: var(--tile-size);
   height: var(--tile-size);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--dim-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.5rem; /* Smaller mobile font */
+  font-size: 0.5rem; /* Adjust font size for mobile tiles */
   font-weight: bold;
   user-select: none;
   cursor: pointer;
-  transition: background-color 0.1s ease-out, transform 0.1s ease-out;
-  border-radius: 1px; /* Smaller mobile border radius */
+  transition: background-color 0.1s ease-out, transform 0.1s ease-out, color 0.1s ease-out, border-color 0.1s ease-out;
+  border-radius: 2px;
+  color: var(--dim-text);
 }
 
 .tile:hover:not(.claimed):not(.cannot-claim) {
-  background-color: rgba(0, 255, 0, 0.2);
+  background-color: rgba(51, 255, 51, 0.1);
   transform: scale(1.05);
 }
 
 .tile.empty {
-  background-color: var(--tile-empty-bg);
-  color: transparent;
+  /* Inherits default styles */
 }
 
 .tile.claimed {
-  color: var(--tile-claimed-text);
-  background-color: var(--base-text);
-  border-color: var(--base-text);
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  color: var(--bg-color);
+  background-color: var(--text-color);
+  border-color: var(--text-color);
 }
 
 .tile.cannot-claim {
   cursor: not-allowed;
   opacity: 0.5;
-  background-color: #333;
 }
 
 .tile.my-claimed-tile {
-  border: 2px solid var(--accent-color);
-  box-shadow: 0 0 8px var(--accent-color);
-  animation: pulse 1.5s infinite alternate;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 5px var(--accent-color);
 }
 
-@keyframes pulse {
-  from {
-    box-shadow: 0 0 8px var(--accent-color);
-  }
-  to {
-    box-shadow: 0 0 15px var(--accent-color);
-  }
-}
-
-/* Modal styles - Mobile First */
+/* Modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  backdrop-filter: blur(5px);
 }
 
 .modal-box {
-  background: var(--base-bg);
-  color: var(--base-text);
-  padding: 1rem; /* Smaller mobile padding */
-  border: 1px solid var(--border-color); /* Thinner mobile border */
-  border-radius: 8px; /* Smaller mobile border radius */
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 1.5rem;
+  border: 1px solid var(--text-color);
+  border-radius: 5px;
   width: 90%;
-  max-width: 360px; /* Smaller mobile max width */
+  max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem; /* Smaller mobile gap */
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* Softer mobile glow */
+  gap: 1rem;
 }
 
 .modal-box h2 {
-  margin-top: 0;
-  margin-bottom: 0.5rem; /* Smaller mobile margin */
-  color: var(--accent-color);
-  text-shadow: 0 0 3px var(--accent-color);
-  font-size: 1.5rem; /* Smaller mobile heading */
+  font-size: 1.5rem;
+  margin-bottom: 0.8rem;
 }
 
 .modal-box p {
-  margin: 0.1rem 0; /* Smaller mobile paragraph margin */
-  font-size: 0.9rem; /* Smaller mobile paragraph font */
+  margin-bottom: 0.5rem;
 }
 
 .modal-form-row {
   display: flex;
+  gap: 0.5rem;
   align-items: center;
-  gap: 0.3rem; /* Smaller mobile gap */
 }
 
 .modal-input,
 .modal-textarea {
-  background: #0d0d0d;
-  color: var(--base-text);
-  border: 1px solid var(--border-color);
-  padding: 0.5rem; /* Smaller mobile padding */
-  font-family: monospace;
-  border-radius: 4px;
-  flex-grow: 1;
+  background: transparent;
+  border: 1px solid var(--dim-text);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  padding: 0.5rem;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  font-size: 0.9rem; /* Smaller mobile input font */
+  flex-grow: 1;
 }
 
 .modal-input:focus,
 .modal-textarea:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 5px var(--accent-color);
+  border-color: var(--text-color);
 }
 
 .modal-color-input {
-  width: 2rem; /* Smaller mobile color input */
-  height: 2rem; /* Smaller mobile color input */
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--dim-text);
   border-radius: 50%;
   cursor: pointer;
-  background-color: transparent;
-  overflow: hidden;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  transition: transform 0.2s ease;
+  overflow: hidden;
 }
 
 .modal-color-input::-webkit-color-swatch-wrapper {
   padding: 0;
 }
+
 .modal-color-input::-webkit-color-swatch {
   border: none;
   border-radius: 50%;
 }
+
 .modal-color-input::-moz-color-swatch {
   border: none;
   border-radius: 50%;
 }
 
-.modal-color-input:hover {
-  transform: scale(1.1);
-}
-
 .modal-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.5rem; /* Smaller mobile margin */
+  margin-top: 1rem;
 }
 
 .modal-button {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  color: var(--text-color);
   background: transparent;
-  color: var(--base-text);
-  border: 1px solid var(--border-color);
-  padding: 0.4rem 0.8rem; /* Smaller mobile padding */
+  border: 1px solid var(--text-color);
+  padding: 0.4rem 0.8rem;
   cursor: pointer;
-  font-family: monospace;
   border-radius: 5px;
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-  font-size: 0.9rem; /* Smaller mobile button font */
+  transition: background 0.2s, color 0.2s;
 }
 
 .modal-button:hover:enabled {
-  background-color: var(--base-text);
-  color: var(--base-bg);
-  box-shadow: 0 0 5px var(--base-text);
+  background: var(--text-color);
+  color: var(--bg-color);
 }
 
 .modal-button:disabled {
@@ -268,94 +426,93 @@ body {
 }
 
 .modal-button.primary-button {
-  background-color: var(--accent-color);
-  color: var(--base-bg);
+  background: var(--accent-color);
+  color: var(--bg-color);
   border-color: var(--accent-color);
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
 .modal-button.primary-button:hover:enabled {
-  background-color: var(--base-text);
-  border-color: var(--base-text);
-  box-shadow: 0 0 8px var(--base-text);
+  background: var(--text-color);
+  color: var(--bg-color);
 }
 
-/* Desktop specific styles (min-width: 601px) */
-@media (min-width: 601px) {
-  :root {
-    --tile-size-desktop: 30px; /* Desktop override */
+/* ─────────────────────────────── */
+/* RESPONSIVE DESIGN       */
+/* ─────────────────────────────── */
+
+/* Mobile specific adjustments (max-width: 600px) */
+@media (max-width: 600px) {
+  .grid-wrapper {
+    display: flex;
+    justify-content: flex-start; /* Align top-left for initial view */
+    align-items: flex-start;
+    overflow: auto; /* Enable both horizontal and vertical scrolling */
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom; /* Enable pinch zoom and panning */
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .grid {
+    --tile-size: var(--tile-size-mobile);
+    grid-template-columns: repeat(var(--grid-columns), var(--tile-size));
+    grid-auto-rows: var(--tile-size);
+    width: calc(var(--grid-columns) * var(--tile-size));
+    height: calc(var(--grid-rows-mobile) * var(--tile-size)); /* Initial visible height */
+  }
+
+  .tile {
+    font-size: 0.5rem;
+    border-radius: 1px;
   }
 
   .wall-title {
-    font-size: 2.5rem; /* Larger desktop title */
-    margin-top: 1rem;
+    font-size: 2.2rem;
     margin-bottom: 1rem;
   }
 
   .wall-subtitle {
-    font-size: 1rem; /* Larger desktop subtitle */
-    margin-bottom: 1.5rem;
-  }
-
-  .grid-wrapper {
-    justify-content: center; /* Center grid on desktop */
-    align-items: center;
-    overflow: auto; /* Standard desktop scrolling */
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-    padding: 5px;
-  }
-
-  .grid {
-    --tile-size: var(--tile-size-desktop);
-    grid-template-columns: repeat(40, var(--tile-size)); /* Explicit columns for desktop */
-    grid-auto-rows: var(--tile-size); /* Implicit row height for desktop */
-    width: auto; /* Auto width for centering */
-    height: auto;
-  }
-
-  .tile {
-    font-size: 0.6rem; /* Larger desktop font */
-    border-radius: 2px; /* Larger desktop border radius */
+    font-size: 0.95rem;
+    margin-bottom: 1.2rem;
   }
 
   .modal-box {
-    padding: 1.5rem; /* Larger desktop padding */
-    border-width: 2px; /* Thicker desktop border */
-    border-radius: 10px; /* Larger desktop border radius */
-    max-width: 400px; /* Larger desktop max width */
-    gap: 1rem; /* Larger desktop gap */
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.7); /* Stronger desktop glow */
+    padding: 1rem;
+    max-width: 95%;
   }
 
   .modal-box h2 {
-    font-size: 2rem; /* Larger desktop heading */
-    margin-bottom: 0.8rem;
-  }
-
-  .modal-box p {
-    font-size: 1rem; /* Larger desktop paragraph font */
-    margin: 0.2rem 0;
+    font-size: 1.3rem;
   }
 
   .modal-input,
   .modal-textarea {
-    padding: 0.6rem; /* Larger desktop padding */
-    border-width: 1px;
-    font-size: 1rem; /* Larger desktop input font */
-    border-radius: 4px;
+    font-size: 1rem;
+    padding: 0.4rem;
   }
 
   .modal-button {
-    padding: 0.6rem 1.2rem; /* Larger desktop padding */
-    border-width: 1px;
-    border-radius: 5px;
-    font-size: 1rem; /* Larger desktop button font */
-  }
-
-  .modal-color-input {
-    width: 2.5rem; /* Larger desktop color input */
-    height: 2.5rem; /* Larger desktop color input */
+    font-size: 1rem;
+    padding: 0.3rem 0.7rem;
   }
 }
+
+/* Desktop styles (min-width: 601px) */
+@media (min-width: 601px) {
+  .grid-wrapper {
+    display: grid;
+    justify-content: center; /* Center the static grid */
+    align-items: center;
+    overflow: hidden; /* Hide overflow for a static view */
+    border: 2px solid var(--text-color);
+    border-radius: 5px;
+    padding: 10px;
+    touch-action: none; /* Disable touch actions on desktop */
+  }
+
+  .grid {
+    --tile-size: var(--tile-size-desktop);
+    grid-template-columns: repeat(var(--grid-columns), var(--tile-size));
+    grid-auto-rows: var(--tile-size);
+    width

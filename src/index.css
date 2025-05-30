@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────────────────────────────── */
-/*                           Echo404 CRT Terminal Theme                      */
+/* Echo404 CRT Terminal Theme                      */
 /* ───────────────────────────────────────────────────────────────────────── */
 
 :root {
@@ -13,9 +13,12 @@
   /* CRT glow */
   --glow-color: rgba(51, 255, 51, 0.4);
   --glow-strength: 2px;
+
+  /* Default mobile tile size */
+  --tile-size-mobile: 40px;
 }
 
-/* full-screen black background */
+/* Base styles for full-screen black background and CRT effects */
 html, body {
   margin: 0;
   padding: 0;
@@ -31,13 +34,13 @@ html, body {
   position: relative;
 }
 
-/* scanline overlay */
+/* Scanline overlay */
 body::before {
   content: "";
   pointer-events: none;
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: 
+  background:
     repeating-linear-gradient(
       to bottom,
       transparent 0px,
@@ -48,7 +51,7 @@ body::before {
   z-index: 1000;
 }
 
-/* subtle vignette */
+/* Subtle vignette */
 body::after {
   content: "";
   pointer-events: none;
@@ -62,7 +65,7 @@ body::after {
   z-index: 999;
 }
 
-/* widespread glow effect */
+/* Widespread glow effect */
 * {
   text-shadow: 0 0 var(--glow-strength) var(--glow-color),
                0 0 calc(var(--glow-strength) * 2) var(--glow-color);
@@ -77,7 +80,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-color);
 }
 
-/* links appear dim, glow on hover */
+/* Links appear dim, glow on hover */
 a {
   color: var(--dim-text);
   text-decoration: none;
@@ -87,7 +90,7 @@ a:hover {
   color: var(--text-color);
 }
 
-/* buttons as old-school text prompts */
+/* Buttons as old-school text prompts */
 button {
   font-family: var(--font-family);
   font-size: 1rem;
@@ -104,7 +107,7 @@ button:hover {
   color: var(--bg-color);
 }
 
-/* inputs & textareas */
+/* Inputs & textareas */
 input, textarea {
   background: transparent;
   border: 1px solid var(--dim-text);
@@ -119,7 +122,7 @@ input:focus, textarea:focus {
   border-color: var(--text-color);
 }
 
-/* scrollbars (WebKit) */
+/* Scrollbars (WebKit) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -134,13 +137,13 @@ input:focus, textarea:focus {
   background: transparent;
 }
 
-/* keyframe “cursor blink” */
+/* Keyframe “cursor blink” */
 @keyframes blink {
   0%, 50% { opacity: 1; }
   50.01%, 100% { opacity: 0; }
 }
 
-/* terminal cursor */
+/* Terminal cursor */
 .cursor {
   display: inline-block;
   width: 0.6ch;
@@ -148,7 +151,382 @@ input:focus, textarea:focus {
   animation: blink 1s steps(1) infinite;
 }
 
-/* responsive text scaling */
+/* ─────────────────────────────── */
+/* WALL STYLES           */
+/* ─────────────────────────────── */
+
+.wall-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Center content vertically */
+  min-height: 100vh; /* Ensure full viewport height */
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow: auto; /* Allow scrolling for smaller screens */
+}
+
+.wall-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.wall-subtitle {
+  font-size: 0.9rem;
+  color: var(--dim-text);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.first-boot-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.first-boot-overlay.hidden {
+  opacity: 0;
+}
+
+.first-boot-message {
+  margin-bottom: 1rem;
+}
+
+.arrow-down-animation {
+  border: 2px solid var(--text-color);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+  animation: bounce 1s infinite alternate;
+}
+
+.arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-top: 0.7rem solid var(--text-color);
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(0.5rem);
+  }
+}
+
+.grid-wrapper {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* Mobile first: align start for panning */
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom; /* Enable pinch zoom on mobile */
+  border: 1px solid var(--text-color); /* Default border */
+  border-radius: 5px;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.grid {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(40, var(--tile-size-mobile));
+  grid-auto-rows: var(--tile-size-mobile);
+  width: calc(40 * var(--tile-size-mobile));
+  height: auto;
+}
+
+.tile {
+  width: var(--tile-size);
+  height: var(--tile-size);
+  border: 1px solid var(--dim-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: bold;
+  user-select: none;
+  cursor: pointer;
+  transition: background-color 0.1s ease-out, transform 0.1s ease-out, color 0.1s ease-out, border-color 0.1s ease-out;
+  border-radius: 2px;
+  color: var(--dim-text);
+}
+
+.tile:hover:not(.claimed):not(.cannot-claim) {
+  background-color: rgba(51, 255, 51, 0.1);
+  transform: scale(1.05);
+}
+
+.tile.empty {
+  /* Inherits default styles */
+}
+
+.tile.claimed {
+  color: var(--bg-color);
+  background-color: var(--text-color);
+  border-color: var(--text-color);
+}
+
+.tile.cannot-claim {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tile.my-claimed-tile {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 5px var(--accent-color);
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-box {
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 1.5rem;
+  border: 1px solid var(--text-color);
+  border-radius: 5px;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-box h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.modal-box p {
+  margin-bottom: 0.5rem;
+}
+
+.modal-form-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.modal-input,
+.modal-textarea {
+  background: transparent;
+  border: 1px solid var(--dim-text);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  padding: 0.5rem;
+  outline: none;
+  flex-grow: 1;
+}
+
+.modal-input:focus,
+.modal-textarea:focus {
+  border-color: var(--text-color);
+}
+
+.modal-color-input {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--dim-text);
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  overflow: hidden;
+}
+
+.modal-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.modal-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+.modal-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.modal-button {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  color: var(--text-color);
+  background: transparent;
+  border: 1px solid var(--text-color);
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.modal-button:hover:enabled {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+.modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-button.primary-button {
+  background: var(--accent-color);
+  color: var(--bg-color);
+  border-color: var(--accent-color);
+}
+
+.modal-button.primary-button:hover:enabled {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+/* ─────────────────────────────── */
+/* RESPONSIVE DESIGN       */
+/* ─────────────────────────────── */
+
+/* Desktop styles (min-width: 601px) */
+@media (min-width: 601px) {
+  :root {
+    --tile-size-desktop: 24px; /* Adjust desktop tile size */
+  }
+
+  .wall-title {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .wall-subtitle {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .grid-wrapper {
+    justify-content: center; /* Center grid on desktop */
+    align-items: center;
+    border-width: 2px;
+  }
+
+  .grid {
+    --tile-size: var(--tile-size-desktop);
+    grid-template-columns: repeat(40, var(--tile-size));
+    grid-auto-rows: var(--tile-size);
+    width: auto; /* Auto width for centering */
+    height: auto;
+  }
+
+  .tile {
+    font-size: 0.7rem;
+    border-width: 1px;
+    border-radius: 3px;
+  }
+
+  .modal-box {
+    padding: 2rem;
+    max-width: 500px;
+  }
+
+  .modal-box h2 {
+    font-size: 2rem;
+  }
+
+  .modal-input,
+  .modal-textarea {
+    font-size: 1.1rem;
+    padding: 0.6rem;
+  }
+
+  .modal-button {
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Mobile specific adjustments (max-width: 600px) */
 @media (max-width: 600px) {
-  html { font-size: 14px; }
+  .wall-title {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .wall-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .grid-wrapper {
+    border: none; /* Remove border on mobile */
+    border-radius: 0;
+  }
+
+  .grid {
+    /* Inherits mobile-first grid settings */
+  }
+
+  .tile {
+    font-size: 0.55rem;
+    border-radius: 1px;
+  }
+
+  .modal-box {
+    padding: 1rem;
+    max-width: 95%;
+  }
+
+  .modal-box h2 {
+    font-size: 1.3rem;
+  }
+
+  .modal-input,
+  .modal-textarea {
+    font-size: 1rem;
+    padding: 0.4rem;
+  }
+
+  .modal-button {
+    font-size: 1rem;
+    padding: 0.3rem 0.7rem;
+  }
 }

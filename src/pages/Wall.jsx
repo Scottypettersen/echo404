@@ -13,8 +13,9 @@ const TOTAL = ROWS * COLS;
 export default function Wall() {
   const { setWhisper } = useEcho();
   const labelRef = useRef();
-  const colorInputRef = useRef(); // Ref for the color input
-  const isPhone = useMediaQuery('(max-width: 600px)'); // Custom hook for media query
+  const colorInputRef = useRef();
+  const isPhone = useMediaQuery('(max-width: 600px)');
+  const hasInteractedRef = useRef(false); // Track if user has interacted
 
   // 0️⃣ — auth loading / error / user
   const [user, setUser] = useState(undefined);
@@ -67,10 +68,13 @@ export default function Wall() {
   const [claimIdx, setClaimIdx] = useState(null);
   const [viewTile, setViewTile] = useState(null);
   const [form, setForm] = useState({ label: "", color: "#0f0", message: "" });
+  const [firstBoot, setFirstBoot] = useState(true);
 
   // 4️⃣ — click handler
   const handleClick = useCallback(
     (idx) => {
+      setFirstBoot(false); // User has interacted
+      hasInteractedRef.current = true;
       if (tiles[idx]) {
         setViewTile({ ...tiles[idx], index: idx });
         setWhisper(`VIEWING #${idx}`);
@@ -83,11 +87,10 @@ export default function Wall() {
       setClaimIdx(idx);
       setForm({ label: "", color: "#0f0", message: "" });
       setWhisper(`CLAIMING #${idx}`);
-      // Focus the label input first, then the color input if it's there
       setTimeout(() => {
         labelRef.current?.focus();
         if (colorInputRef.current) {
-          colorInputRef.current.title = "Click to change tile color!"; // Add reminder title
+          colorInputRef.current.title = "Click to change tile color!";
         }
       }, 100);
     },
@@ -113,16 +116,16 @@ export default function Wall() {
     try {
       await setDoc(doc(db, "tiles", String(idx)), newTile);
       setWhisper(`#${idx} CLAIMED`);
-      setClaimIdx(null);
+      setClaimIdx(null); // Keep modal open briefly? Or just let the wall update
     } catch (err) {
       console.error("Save error:", err);
       setWhisper("SAVE FAILED—RETRY");
     }
   };
 
-  // 6️⃣ — Subtle Whispers
+  // 6️⃣ — Subtle Whispers (Enhanced)
   const triggerWhispers = useCallback(() => {
-    if (!user) return;
+    if (!user || !hasInteractedRef.current) return; // Only whisper after interaction
     const delay = 15000 + Math.random() * 15000;
     const emptyTileCount = tiles.filter((tile) => !tile).length;
 
@@ -132,6 +135,8 @@ export default function Wall() {
         "... leave your mark...",
         "... the wall is listening...",
         "... a blank canvas calls...",
+        "... tap to claim...", // Interaction hint
+        "... click a square...", // Interaction hint
       ]);
       setWhisper(hint);
     } else if (myIndex !== null && viewTile?.claimedBy !== user.uid) {
@@ -151,6 +156,12 @@ export default function Wall() {
       const hint = getRandomElement([
         "... the wall is full...",
         "... every space claimed...",
+      ]);
+      setWhisper(hint);
+    } else if (myIndex === null && emptyTileCount < TOTAL) {
+      const hint = getRandomElement([
+        "... the wall is filling...",
+        "... more echoes appear...",
       ]);
       setWhisper(hint);
     }
@@ -179,6 +190,15 @@ export default function Wall() {
         Click an empty square to leave your trace — everyone sees it.
       </p>
 
+      {firstBoot && (
+        <div className="first-boot-overlay">
+          <p className="first-boot-message">
+            Tap or click any empty square to begin!
+          </p>
+          <div className="arrow-down-animation">↓</div>
+        </div>
+      )}
+
       <div className="grid-wrapper">
         <div className="grid" style={{ gridTemplateColumns: `repeat(${COLS}, var(--tile-size))` }}>
           {tiles.map((t, i) => (
@@ -189,7 +209,6 @@ export default function Wall() {
               className={`tile ${t ? "claimed" : "empty"} ${
                 myIndex === null ? "can-claim" : "cannot-claim"
               } ${i === myIndex ? "my-claimed-tile" : ""}`}
-              /* Added class for your claimed tile */
               style={{ backgroundColor: t ? t.color : undefined }}
             >
               {t?.label}
@@ -203,7 +222,7 @@ export default function Wall() {
         <div className="modal-overlay">
           <form onSubmit={submitClaim} className="modal-box">
             <h2>Claim Tile #{claimIdx}</h2>
-            <div className="modal-form-row"> {/* New div for layout */}
+            <div className="modal-form-row">
               <input
                 ref={labelRef}
                 maxLength={3}
@@ -213,12 +232,12 @@ export default function Wall() {
                 className="modal-input"
               />
               <input
-                ref={colorInputRef} // Attach ref here
+                ref={colorInputRef}
                 type="color"
                 value={form.color}
                 onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
                 className="modal-color-input"
-                title="Click to change tile color!" // Persistent reminder
+                title="Click to change tile color!"
               />
             </div>
             <textarea
@@ -232,7 +251,7 @@ export default function Wall() {
               <button type="button" onClick={() => setClaimIdx(null)} className="modal-button">
                 Cancel
               </button>
-              <button type="submit" disabled={!form.label.trim()} className="modal-button primary-button"> {/* Added primary-button class */}
+              <button type="submit" disabled={!form.label.trim()} className="modal-button primary-button">
                 Claim
               </button>
             </div>
@@ -263,7 +282,6 @@ export default function Wall() {
   );
 }
 
-// Custom hook to check media query
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
   useEffect(() => {

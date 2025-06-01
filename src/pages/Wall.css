@@ -17,14 +17,14 @@
   --glow-strength: 2px;
 
   /* Base tile size variables */
-  --tile-size-mobile: 30px; /* Adjusted for better mobile box size */
-  --tile-size-desktop: 20px; /* Adjusted for better desktop box size */
-  --grid-columns: 40; /* Define the number of columns in the grid */
-  --grid-rows-mobile: 25; /* Initial visible rows on mobile */
+  --tile-size-desktop: 20px;
+  --tile-size-mobile: 30px;
+  --grid-columns: 40;
   --grid-rows-desktop: 20; /* Initial visible rows on desktop */
+  --grid-rows-mobile: 25; /* Initial visible rows on mobile */
 }
 
-/* Base styles for full-screen black background and CRT effects */
+/* Base styles */
 html,
 body {
   margin: 0;
@@ -37,12 +37,11 @@ body {
   font-size: 16px;
   line-height: 1.3;
   text-align: left;
-  overflow: hidden; /* Keep body overflow hidden for CRT effects */
+  overflow: hidden; /* Prevent scrollbars on CRT overlay */
   position: relative;
   box-sizing: border-box;
 }
 
-/* Scanline overlay */
 body::before {
   content: "";
   pointer-events: none;
@@ -55,7 +54,6 @@ body::before {
   z-index: 1000;
 }
 
-/* Subtle vignette */
 body::after {
   content: "";
   pointer-events: none;
@@ -68,26 +66,19 @@ body::after {
   z-index: 999;
 }
 
-/* Widespread glow effect */
 * {
   text-shadow: 0 0 var(--glow-strength) var(--glow-color), 0 0 calc(var(--glow-strength) * 2) var(--glow-color);
 }
 
-/* Terminal headings */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-family: var(--font-family);
   font-weight: normal;
   letter-spacing: 1px;
   color: var(--text-color);
+  text-align: center;
 }
 
-/* Links appear dim, glow on hover */
 a {
   color: var(--dim-text);
   text-decoration: none;
@@ -98,17 +89,19 @@ a:hover {
   color: var(--text-color);
 }
 
-/* Buttons as old-school text prompts */
 button {
   font-family: var(--font-family);
   font-size: 1rem;
   color: var(--text-color);
   background: transparent;
   border: 1px solid var(--text-color);
-  padding: 0.3rem 0.6rem;
+  padding: 0.6rem 1rem;
   cursor: pointer;
   letter-spacing: 0.5px;
   transition: background 0.2s, color 0.2s;
+  border-radius: 5px;
+  box-sizing: border-box;
+  min-width: 80px;
 }
 
 button:hover {
@@ -116,7 +109,21 @@ button:hover {
   color: var(--bg-color);
 }
 
-/* Inputs & textareas */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary-button {
+  background: var(--text-color);
+  color: var(--bg-color);
+  border-color: var(--text-color);
+}
+
+button.primary-button:hover:enabled {
+  background: var(--dim-text);
+}
+
 input,
 textarea {
   background: transparent;
@@ -124,9 +131,11 @@ textarea {
   color: var(--text-color);
   font-family: var(--font-family);
   font-size: 1rem;
-  padding: 0.4rem;
+  padding: 0.5rem;
   outline: none;
   letter-spacing: 0.5px;
+  border-radius: 3px;
+  box-sizing: border-box;
 }
 
 input:focus,
@@ -134,7 +143,6 @@ textarea:focus {
   border-color: var(--text-color);
 }
 
-/* Scrollbars (WebKit) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -152,20 +160,11 @@ textarea:focus {
   background: transparent;
 }
 
-/* Keyframe “cursor blink” */
 @keyframes blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-
-  50.01%,
-  100% {
-    opacity: 0;
-  }
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
-/* Terminal cursor */
 .cursor {
   display: inline-block;
   width: 0.6ch;
@@ -173,19 +172,16 @@ textarea:focus {
   animation: blink 1s steps(1) infinite;
 }
 
-/* ─────────────────────────────── */
-/* WALL STYLES           */
-/* ─────────────────────────────── */
-
+/* Wall Styles */
 .wall-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start; /* Align top to allow scrolling of the whole container if needed */
+  justify-content: flex-start;
   min-height: 100vh;
   padding: 1rem;
   box-sizing: border-box;
-  overflow: auto; /* Allow scrolling of the entire container if content overflows */
+  overflow-y: auto;
 }
 
 .wall-title {
@@ -197,11 +193,10 @@ textarea:focus {
   font-size: 0.9rem;
   color: var(--dim-text);
   margin-bottom: 1.5rem;
-  text-align: center;
 }
 
 .first-boot-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -248,26 +243,25 @@ textarea:focus {
 }
 
 @keyframes bounce {
-  from {
-    transform: translateY(0);
-  }
-
-  to {
-    transform: translateY(0.5rem);
-  }
+  from { transform: translateY(0); }
+  to { transform: translateY(0.5rem); }
 }
 
 .grid-wrapper {
-  width: 100%;
   box-sizing: border-box;
-  margin-bottom: 1rem; /* Add some margin below the grid */
+  margin-bottom: 1rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 .grid {
   display: grid;
   gap: 1px;
-  width: calc(var(--grid-columns) * var(--tile-size-mobile)); /* Full width for panning on mobile */
-  height: calc(var(--grid-rows-mobile) * var(--tile-size-mobile)); /* Initial height on mobile */
+  grid-template-columns: repeat(var(--grid-columns), var(--tile-size));
+  grid-auto-rows: var(--tile-size);
+  width: calc(var(--grid-columns) * var(--tile-size));
+  height: calc(var(--grid-rows) * var(--tile-size));
 }
 
 .tile {
@@ -277,13 +271,13 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.5rem; /* Adjust font size for mobile tiles */
   font-weight: bold;
   user-select: none;
   cursor: pointer;
   transition: background-color 0.1s ease-out, transform 0.1s ease-out, color 0.1s ease-out, border-color 0.1s ease-out;
   border-radius: 2px;
   color: var(--dim-text);
+  box-sizing: border-box;
 }
 
 .tile:hover:not(.claimed):not(.cannot-claim) {
@@ -291,9 +285,12 @@ textarea:focus {
   transform: scale(1.05);
 }
 
-.tile.empty {
-  /* Inherits default styles */
+.tile:active:not(.claimed):not(.cannot-claim) {
+  background-color: rgba(51, 255, 51, 0.2);
+  transform: scale(0.98);
 }
+
+.tile.empty { /* Inherits default styles */ }
 
 .tile.claimed {
   color: var(--bg-color);
@@ -307,11 +304,11 @@ textarea:focus {
 }
 
 .tile.my-claimed-tile {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 5px var(--accent-color);
+  border-color: var(--text-color);
+  box-shadow: 0 0 5px var(--text-color);
 }
 
-/* Modal styles */
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -323,6 +320,7 @@ textarea:focus {
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  overflow: auto;
 }
 
 .modal-box {
@@ -336,6 +334,7 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  box-sizing: border-box;
 }
 
 .modal-box h2 {
@@ -345,29 +344,14 @@ textarea:focus {
 
 .modal-box p {
   margin-bottom: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .modal-form-row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-}
-
-.modal-input,
-.modal-textarea {
-  background: transparent;
-  border: 1px solid var(--dim-text);
-  color: var(--text-color);
-  font-family: var(--font-family);
-  font-size: 1rem;
-  padding: 0.5rem;
-  outline: none;
-  flex-grow: 1;
-}
-
-.modal-input:focus,
-.modal-textarea:focus {
-  border-color: var(--text-color);
 }
 
 .modal-color-input {
@@ -383,19 +367,9 @@ textarea:focus {
   overflow: hidden;
 }
 
-.modal-color-input::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.modal-color-input::-webkit-color-swatch {
-  border: none;
-  border-radius: 50%;
-}
-
-.modal-color-input::-moz-color-swatch {
-  border: none;
-  border-radius: 50%;
-}
+.modal-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.modal-color-input::-webkit-color-swatch { border: none; border-radius: 50%; }
+.modal-color-input::-moz-color-swatch { border: none; border-radius: 50%; }
 
 .modal-actions {
   display: flex;
@@ -403,116 +377,57 @@ textarea:focus {
   margin-top: 1rem;
 }
 
-.modal-button {
-  font-family: var(--font-family);
-  font-size: 1rem;
-  color: var(--text-color);
-  background: transparent;
-  border: 1px solid var(--text-color);
-  padding: 0.4rem 0.8rem;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background 0.2s, color 0.2s;
-}
-
-.modal-button:hover:enabled {
-  background: var(--text-color);
-  color: var(--bg-color);
-}
-
-.modal-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.modal-button.primary-button {
-  background: var(--accent-color);
-  color: var(--bg-color);
-  border-color: var(--accent-color);
-}
-
-.modal-button.primary-button:hover:enabled {
-  background: var(--text-color);
-  color: var(--bg-color);
-}
-
-/* ─────────────────────────────── */
-/* RESPONSIVE DESIGN       */
-/* ─────────────────────────────── */
-
-/* Mobile specific adjustments (max-width: 600px) */
+/* Responsive Design */
 @media (max-width: 600px) {
+  .wall-title { font-size: 2rem; margin-bottom: 0.8rem; }
+  .wall-subtitle { font-size: 0.9rem; margin-bottom: 1.2rem; }
+
   .grid-wrapper {
-    display: flex;
-    justify-content: flex-start; /* Align top-left for initial view */
-    align-items: flex-start;
-    overflow: auto; /* Enable both horizontal and vertical scrolling */
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y pinch-zoom; /* Enable pinch zoom and panning */
-    border: none;
-    border-radius: 0;
-    padding: 0;
+    margin-bottom: 0.8rem;
   }
 
   .grid {
     --tile-size: var(--tile-size-mobile);
     grid-template-columns: repeat(var(--grid-columns), var(--tile-size));
     grid-auto-rows: var(--tile-size);
-    width: calc(var(--grid-columns) * var(--tile-size));
-    height: calc(var(--grid-rows-mobile) * var(--tile-size)); /* Initial visible height */
   }
 
   .tile {
-    font-size: 0.5rem;
+    font-size: 0.6rem;
     border-radius: 1px;
-  }
-
-  .wall-title {
-    font-size: 2.2rem;
-    margin-bottom: 1rem;
-  }
-
-  .wall-subtitle {
-    font-size: 0.95rem;
-    margin-bottom: 1.2rem;
   }
 
   .modal-box {
     padding: 1rem;
     max-width: 95%;
+    gap: 0.8rem;
   }
 
-  .modal-box h2 {
-    font-size: 1.3rem;
-  }
-
-  .modal-input,
-  .modal-textarea {
-    font-size: 1rem;
-    padding: 0.4rem;
-  }
-
-  .modal-button {
-    font-size: 1rem;
-    padding: 0.3rem 0.7rem;
-  }
+  .modal-box h2 { font-size: 1.3rem; margin-bottom: 0.6rem; }
+  .modal-box p { font-size: 0.95rem; }
+  .modal-input, .modal-textarea { font-size: 1rem; padding: 0.4rem; }
+  .modal-button { font-size: 1rem; padding: 0.5rem 0.9rem; min-width: 70px; }
 }
 
-/* Desktop styles (min-width: 601px) */
 @media (min-width: 601px) {
   .grid-wrapper {
-    display: grid;
-    justify-content: center; /* Center the static grid */
-    align-items: center;
-    overflow: hidden; /* Hide overflow for a static view */
     border: 2px solid var(--text-color);
     border-radius: 5px;
     padding: 10px;
-    touch-action: none; /* Disable touch actions on desktop */
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    touch-action: none;
   }
 
   .grid {
     --tile-size: var(--tile-size-desktop);
     grid-template-columns: repeat(var(--grid-columns), var(--tile-size));
     grid-auto-rows: var(--tile-size);
-    width
+  }
+
+  .tile {
+    font-size: 0.7rem;
+  }
+}

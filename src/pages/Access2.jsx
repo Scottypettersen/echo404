@@ -103,7 +103,7 @@ function Access2() {
         setStatus('success');
         setWhisper('ACCESS GRANTED');
         clearTimeout(hintTimerRef.current);
-        setTimeout(() => navigate('/access-3'), 1000);
+        setTimeout(() => navigate('/access3'), 1000);
       } else {
         setWrong(w => w + 1);
         setWhisper(`INCORRECT GUESS: ${guess}`);
@@ -128,7 +128,7 @@ function Access2() {
       setStatus('success');
       setWhisper('ACCESS GRANTED');
       clearTimeout(hintTimerRef.current);
-      setTimeout(() => navigate('/access-3'), 1000);
+      setTimeout(() => navigate('/access3'), 1000);
     } else if (wrong >= MAX_WRONG) {
       setStatus('dead');
       setWhisper('SYSTEM LOCKED');

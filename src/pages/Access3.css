@@ -1,107 +1,277 @@
 /* src/pages/Access3.css */
 
-/* Base styles for all devices */
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Base styles for Access3 - Mobile First Approach                         */
+/* ───────────────────────────────────────────────────────────────────────── */
+
 .access3-container {
   background-color: #000;
   color: #0f0;
-  font-family: monospace;
+  font-family: 'Courier New', Courier, monospace; /* Use the CRT font */
   min-height: 100vh;
-  padding: 2rem;
+  padding: 1rem; /* Smaller padding for mobile */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  text-shadow: 0 0 2px rgba(51, 255, 51, 0.4); /* Subtle global glow */
 }
 
 .access3-title {
-  font-size: 2rem; /* Larger title for emphasis */
-  margin-bottom: 1rem;
+  font-size: 1.8rem; /* Mobile title size */
+  margin-bottom: 0.8rem;
   text-align: center;
+  color: #0ff; /* Accent color for title */
+  text-shadow: 0 0 8px #0ff; /* Stronger glow for title */
 }
 
 .access3-subtitle {
-  font-size: 1.1rem;
-  margin-bottom: 2rem;
+  font-size: 0.9rem; /* Mobile subtitle size */
+  margin-bottom: 1.5rem;
   text-align: center;
+  color: #666; /* Dim text */
 }
 
-.access3-tiles-container {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin-bottom: 2rem;
+/* Sequence Display */
+.sequence-display {
+  font-size: 2.5rem; /* Mobile sequence font size */
+  margin-bottom: 1.5rem;
+  padding: 10px 15px;
+  border: 2px solid #0f0;
+  min-width: 200px; /* Ensure it's wide enough */
+  text-align: center;
+  letter-spacing: 0.8rem; /* Space out digits */
+  background-color: rgba(0, 0, 0, 0.6); /* Slightly transparent background */
+  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5); /* Subtle box glow */
+  transition: all 0.3s ease-in-out;
+  user-select: none; /* Prevent text selection */
 }
 
-.access3-tile {
-  background-color: #111;
-  color: #0f0;
-  border: 2px solid #0f0; /* Thicker border for better visibility */
-  font-size: 2.5rem; /* Large font size for easy reading/tapping */
-  width: 80px;
-  height: 80px;
+.sequence-display.displaying {
+  color: #00ff00; /* Brighter green during display */
+  text-shadow: 0 0 12px #00ff00; /* Stronger glow during display */
+  animation: pulse-glow 1.5s infinite alternate; /* Pulsing effect */
+}
+
+/* Optional "glitch" effect - add this class via JS when needed */
+.sequence-display.glitch {
+  animation: glitch 0.3s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from { box-shadow: 0 0 5px rgba(0, 255, 0, 0.5); }
+  to { box-shadow: 0 0 15px rgba(0, 255, 0, 0.8); }
+}
+
+@keyframes glitch {
+  0% { transform: translate(1px, -1px) skew(-0.5deg, 0.5deg); opacity: 0.9; }
+  25% { transform: translate(-1px, 2px) skew(0.5deg, -0.5deg); opacity: 0.8; }
+  50% { transform: translate(2px, 1px) skew(-1deg, 1deg); opacity: 0.95; }
+  75% { transform: translate(-2px, -2px) skew(1deg, -1deg); opacity: 0.85; }
+  100% { transform: translate(0, 0) skew(0, 0); opacity: 1; }
+}
+
+/* Input Area */
+.input-area {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  user-select: none;
-  cursor: grab;
-  margin: 0.5rem; /* Spacing between tiles */
+  width: 100%;
+  max-width: 400px; /* Constrain width on larger screens */
+  margin-bottom: 1.5rem;
 }
 
-.access3-tile[draggable="false"] {
-  cursor: default;
-  opacity: 0.7; /* Slightly fade when solved */
+.user-input {
+  font-size: 2rem; /* Mobile user input font size */
+  margin-bottom: 1rem;
+  padding: 10px 15px;
+  border: 1px solid #0f0;
+  min-width: 200px;
+  text-align: center;
+  letter-spacing: 0.8rem;
+  background-color: #1a1a1a; /* Darker background for input area */
+  box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.3); /* Inner shadow for input */
+  user-select: none; /* Prevent text selection */
+  word-break: break-all; /* Ensure long sequences don't overflow */
+  caret-color: #0f0; /* Green cursor */
 }
 
-.access3-solved {
-  color: #0f0;
-  font-size: 1.2rem;
+.user-input:focus {
+  outline: none;
+  border-color: #00ff00;
+  box-shadow: inset 0 0 8px rgba(0, 255, 0, 0.5), 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+/* Keypad for mobile/universal input */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); /* Responsive columns */
+  gap: 10px; /* Spacing between keys */
+  width: 100%;
+  max-width: 300px; /* Max width for keypad */
   margin-top: 1rem;
 }
 
-/* Desktop specific styles (larger screens) */
+.keypad-button {
+  background-color: #222;
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 15px 0; /* Larger padding for touch targets */
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5rem; /* Larger font for keys */
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+  border-radius: 5px;
+  user-select: none; /* Prevent text selection */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+}
+
+.keypad-button:active:not(:disabled) { /* Use :active for touch feedback */
+  background-color: #0f0;
+  color: #000;
+  box-shadow: 0 0 10px #0f0;
+}
+
+.keypad-button.backspace {
+  grid-column: span 2; /* Make backspace wider */
+  background-color: #331; /* Slightly different color for control keys */
+}
+
+.keypad-button.check {
+  grid-column: span 2; /* Make check button wider */
+  background-color: #133; /* Slightly different color for control keys */
+}
+
+.keypad-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #111;
+  box-shadow: none;
+}
+
+/* Feedback messages */
+.feedback {
+  font-size: 1rem;
+  margin-top: 1rem;
+  font-style: italic;
+  text-align: center;
+  color: #0f0; /* Default success/info color */
+}
+
+.feedback.error {
+  color: #f00; /* Red for errors */
+  text-shadow: 0 0 5px #f00;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Desktop Specific Styles (min-width: 601px)                              */
+/* ───────────────────────────────────────────────────────────────────────── */
 @media (min-width: 601px) {
-  .access3-tiles-container {
-    gap: 1.5rem; /* Wider gap on desktop */
+  .access3-container {
+    padding: 3rem;
   }
 
   .access3-title {
     font-size: 2.5rem;
+    margin-bottom: 1rem;
   }
 
   .access3-subtitle {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
   }
 
-  .access3-tile {
-    width: 100px;
-    height: 100px;
+  .sequence-display {
     font-size: 3rem;
-    margin: 0.75rem;
+    margin-bottom: 2rem;
+    padding: 15px 20px;
+    min-width: 250px;
+    letter-spacing: 1rem;
   }
-}
 
-/* Mobile specific styles (smaller screens) */
-@media (max-width: 600px) {
-  .access3-title {
+  .input-area {
+    max-width: 500px; /* Wider input area on desktop */
+  }
+
+  .user-input {
+    font-size: 2.5rem;
+    padding: 15px 20px;
+    min-width: 250px;
+    letter-spacing: 1rem;
+  }
+
+  .keypad {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); /* Slightly larger keys */
+    gap: 15px;
+    max-width: 400px; /* Wider keypad on desktop */
+  }
+
+  .keypad-button {
+    padding: 20px 0;
     font-size: 1.8rem;
   }
 
+  .feedback {
+    font-size: 1.1rem;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Mobile Specific Adjustments (max-width: 600px)                          */
+/* ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .access3-container {
+    padding: 1rem;
+  }
+
+  .access3-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.8rem;
+  }
+
   .access3-subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
     margin-bottom: 1.5rem;
   }
 
-  .access3-tiles-container {
-    flex-direction: row; /* Keep horizontal on mobile for single-hand drag */
-    flex-wrap: wrap; /* Allow wrapping if screen is narrow */
-    justify-content: center; /* Center tiles on mobile */
-    gap: 1rem;
+  .sequence-display {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0.6rem;
+    min-width: unset; /* Allow it to shrink on very small screens */
+    width: 90%; /* Take up more width */
   }
 
-  .access3-tile {
-    width: 60px;
-    height: 60px;
-    font-size: 2rem;
-    margin: 0.3rem;
+  .input-area {
+    width: 95%; /* Take up more width */
+  }
+
+  .user-input {
+    font-size: 1.8rem;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.6rem;
+    min-width: unset; /* Allow it to shrink */
+    width: 90%; /* Take up more width */
+  }
+
+  .keypad {
+    grid-template-columns: repeat(auto-fit, minmax(55px, 1fr)); /* Slightly smaller keys for very small screens */
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .keypad-button {
+    padding: 12px 0;
+    font-size: 1.3rem;
+  }
+
+  .keypad-button.backspace,
+  .keypad-button.check {
+    grid-column: span 2; /* Keep wider for better touch */
+  }
+
+  .feedback {
+    font-size: 0.9rem;
   }
 }

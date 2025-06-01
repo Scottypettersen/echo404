@@ -1,145 +1,115 @@
-// src/pages/Access2.jsx
-import React, { useState, useEffect } from 'react';
+// src/pages/Access.jsx
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEcho } from '../context/EchoContext';
-import './Access2.css';
+import Whisper from '../components/Whisper'; // Assuming Whisper.jsx is in 'components'
+import './Access.css';
 
-const TARGET = 'TAKE AWAY';
-const MAX_WRONG = 6;
+const SECRET_PASSWORD = "KAZANIS";
+const WHISPER_DELAY = 2000; // Initial delay before hints (ms)
+const HINT_INTERVAL = 2500; // Interval between hints (ms)
+const CRYPTIC_WHISPERS = [
+  "... the gatekeeper hums a tune...",
+  "... shadows dance with secrets...",
+  "... listen to the pulse of the machine...",
+  "... echoes of forgotten protocols...",
+  "... the first layer yields slowly...",
+  "... a name etched in the static...",
+  "... the key resonates...",
+  "... silence holds the answer...",
+];
 const KEYBOARD_LAYOUT = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
+  ['Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DEL'],
+  ['ENTER'],
 ];
-const VOWELS = ['A', 'E', 'I', 'O', 'U'];
-const SYNONYMS = ['remove', 'extract', 'seize', 'abduct', 'eliminate', 'withdraw', 'detach', 'usurp'];
+const PASSWORD_LETTERS = SECRET_PASSWORD.toUpperCase().split('');
 
-function getRandomElement(array) {
-  return array[Math.floor(Math.random() * array.length)];
+function shuffleArray(array) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
 }
 
-export default function Access2() {
+export default function Access() {
   const { setWhisper } = useEcho();
   const navigate = useNavigate();
-
-  const [reveal, setReveal] = useState(
-    TARGET.split('').map(ch => (ch === ' ' ? ' ' : '_'))
-  );
-  const [wrong, setWrong] = useState(0);
-  const [tried, setTried] = useState([]);
-  const [status, setStatus] = useState('ready');
+  const [passwordAttempt, setPasswordAttempt] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [hintQueue, setHintQueue] = useState(() => shuffleArray(PASSWORD_LETTERS));
   const [highlightedKey, setHighlightedKey] = useState('');
-  const [hintTimer, setHintTimer] = useState(null);
+  const whisperIntervalRef = useRef(null);
 
   useEffect(() => {
-    setWhisper('ECHO PUZZLE 2: UNLOCK LETTERS');
+    setWhisper('INITIATE ECHO SEQUENCE...');
 
-    const initialHintTimeout = setTimeout(() => {
-      setWhisper('... a breathy sound might appear...'); // Initial vowel hint
-    }, 5000);
-    setHintTimer(initialHintTimeout);
-
-    return () => clearTimeout(initialHintTimeout);
-  }, [setWhisper]);
-
-  const triggerHint = () => {
-    clearTimeout(hintTimer);
-    if (status === 'ready' && wrong < MAX_WRONG && reveal.join('') !== TARGET) {
-      if (Math.random() < 0.5) {
-        const unguessedVowels = VOWELS.filter(v => !tried.includes(v) && TARGET.includes(v));
-        if (unguessedVowels.length > 0) {
-          setWhisper(`... perhaps a ${getRandomElement(['soft', 'open', 'airy'])} sound resonates...`); // Vowel
-        } else {
-          const unguessedConsonants = KEYBOARD_LAYOUT.flat().filter(
-            c => !VOWELS.includes(c) && !tried.includes(c) && TARGET.includes(c)
-          );
-          if (unguessedConsonants.length > 0) {
-            setWhisper(`... a more ${getRandomElement(['firm', 'stopped', 'sharp'])} echo returns...`); // Consonant
+    const initialHintTimeoutId = setTimeout(() => {
+      whisperIntervalRef.current = setInterval(() => {
+        // Randomly choose between a letter hint and a cryptic whisper
+        if (Math.random() < 0.6) {
+          if (hintQueue.length > 0) {
+            const hint = hintQueue.shift();
+            setWhisper(`... ECHO: ${hint}`);
           } else {
-            setWhisper('... the silence holds a faint trace...'); // Last resort
+            // If the hint queue is empty, reshuffle and add the first letter
+            setHintQueue(shuffleArray(PASSWORD_LETTERS));
+            setWhisper(`... ECHO: ${shuffleArray(PASSWORD_LETTERS)[0]}`); // Immediately show a letter
           }
+        } else {
+          const randomIndex = Math.floor(Math.random() * CRYPTIC_WHISPERS.length);
+          setWhisper(CRYPTIC_WHISPERS[randomIndex]);
         }
-      } else {
-        const chosenSynonym = getRandomElement(SYNONYMS);
-        setWhisper(`... the echo suggests to ${chosenSynonym} something...`); // Synonym hint
-      }
-      const newHintTimer = setTimeout(triggerHint, 8000 + Math.random() * 5000);
-      setHintTimer(newHintTimer);
-    }
-  };
+      }, HINT_INTERVAL);
+    }, WHISPER_DELAY);
 
-  useEffect(() => {
-    const recurringHintTimer = setTimeout(triggerHint, 10000);
-    setHintTimer(recurringHintTimer);
-    return () => clearTimeout(recurringHintTimer);
-  }, [status, wrong, reveal]);
+    return () => {
+      clearTimeout(initialHintTimeoutId);
+      clearInterval(whisperIntervalRef.current);
+    };
+  }, [setWhisper]); // Removed hintQueue from dependency array - the interval handles the looping
 
-  const handleGuess = (letter) => {
-    const upperLetter = letter.toUpperCase();
-    if (status !== 'ready' || tried.includes(upperLetter)) {
-      return;
-    }
-
-    setTried(t => [...t, upperLetter]);
-
-    if (TARGET.includes(upperLetter)) {
-      setReveal(r =>
-        r.map((ch, i) => (TARGET[i] === upperLetter ? upperLetter : ch))
-      );
-      setWhisper(`REVEALED: ${upperLetter}`);
+  const handleSubmitPassword = useCallback(() => {
+    if (passwordAttempt.toUpperCase() === SECRET_PASSWORD.toUpperCase()) {
+      setFeedback('ACCESS GRANTED');
+      setTimeout(() => navigate('/access2'), 1000);
     } else {
-      setWrong(w => w + 1);
-      setWhisper(`WRONG: ${upperLetter}`);
-      setStatus('fail');
-      setTimeout(() => setStatus('ready'), 300);
+      setFeedback('ACCESS DENIED');
+      setTimeout(() => setFeedback(''), 1000);
     }
-  };
+  }, [navigate, passwordAttempt]);
 
-  const handleKeyboardInput = (key) => {
-    if (status === 'ready') {
-      if (KEYBOARD_LAYOUT.flat().includes(key.toUpperCase())) {
-        handleGuess(key);
-        setHighlightedKey(key.toUpperCase());
-        setTimeout(() => setHighlightedKey(''), 300);
-      }
+  const handleKeyboardInput = useCallback((key) => {
+    const upperKey = key.toUpperCase();
+    if (key === 'ENTER') {
+      handleSubmitPassword();
+    } else if (key === 'DEL') {
+      setPasswordAttempt((prevAttempt) => prevAttempt.slice(0, -1));
+    } else if (passwordAttempt.length < SECRET_PASSWORD.length) {
+      setPasswordAttempt((prevAttempt) => prevAttempt + upperKey);
+      setHighlightedKey(upperKey);
+      setTimeout(() => setHighlightedKey(''), 300); // Brief highlight
     }
-  };
-
-  useEffect(() => {
-    if (reveal.join('') === TARGET) {
-      setStatus('success');
-      setWhisper('ACCESS GRANTED');
-      clearTimeout(hintTimer);
-      setTimeout(() => navigate('/access-3'), 1000);
-    } else if (wrong >= MAX_WRONG) {
-      setStatus('dead');
-      setWhisper('SYSTEM LOCKED');
-      clearTimeout(hintTimer);
-    }
-  }, [reveal, wrong, setWhisper, navigate, hintTimer]);
+  }, [handleSubmitPassword]);
 
   return (
-    <main className="access2-container">
-      <h1 className="access2-title">&gt; ECHO PUZZLE 2</h1>
-      <p className="access2-subtitle">
-        Guess the letters to reveal the secret phrase.
-      </p>
-
-      <div className="access2-hangman">
-        {reveal.map((ch, i) => (
-          <span key={i} className="access2-letter">{ch}</span>
-        ))}
+    <main className="access-container">
+      <h2 className="access-title">&gt; ECHO ACCESS</h2>
+      <div className="password-display">
+        &gt; ENTER ECHO PASSWORD:
+        <div className="password-input">{passwordAttempt}</div>
       </div>
-
-      <div className="access2-keyboard">
+      <div className="keyboard">
         {KEYBOARD_LAYOUT.map((row, index) => (
-          <div key={index} className="access2-keyboard-row">
+          <div key={index} className="keyboard-row">
             {row.map((key) => (
               <button
                 key={key}
-                className={`access2-keyboard-key ${highlightedKey === key ? 'highlight' : ''} ${tried.includes(key) ? 'tried' : ''}`}
+                className={`keyboard-key ${key === 'ENTER' ? 'enter-key' : ''} ${key === 'DEL' ? 'del-key' : ''} ${highlightedKey === key.toUpperCase() ? 'highlight' : ''}`}
                 onClick={() => handleKeyboardInput(key)}
-                disabled={status !== 'ready' || tried.includes(key)}
               >
                 {key}
               </button>
@@ -147,21 +117,9 @@ export default function Access2() {
           </div>
         ))}
       </div>
-
-      <p className="access2-info">
-        Tried: {tried.join(', ') || 'none'}<br/>
-        Wrong: {wrong} / {MAX_WRONG}
-      </p>
-
-      {status === 'success' && (
-        <p className="access2-success">✓ Phrase revealed!</p>
-      )}
-      {status === 'fail' && (
-        <p className="access2-fail">✗ No “{tried.slice(-1)[0]}” in there.</p>
-      )}
-      {status === 'dead' && (
-        <p className="access2-dead">Too many wrong—access denied.</p>
-      )}
+      {feedback && <p className="feedback">{feedback}</p>}
+      <p className="instruction">(Listen for the echoing letters)</p>
+      <Whisper />
     </main>
   );
 }

@@ -12,8 +12,9 @@ const TOTAL = ROWS * COLS;
 
 export default function Wall() {
   const { setWhisper } = useEcho();
-  const labelRef = useRef();
-  const colorInputRef = useRef();
+  const labelRef = useRef(null); // Initialize with null
+  const colorInputRef = useRef(null); // Initialize with null
+  const messageTextareaRef = useRef(null); // New ref for the message textarea
   const isPhone = useMediaQuery('(max-width: 600px)');
   const hasInteractedRef = useRef(false); // Track if user has interacted
 
@@ -87,6 +88,7 @@ export default function Wall() {
       setClaimIdx(idx);
       setForm({ label: "", color: "#0f0", message: "" });
       setWhisper(`CLAIMING #${idx}`);
+      // Focus input and set title after modal renders
       setTimeout(() => {
         labelRef.current?.focus();
         if (colorInputRef.current) {
@@ -101,7 +103,7 @@ export default function Wall() {
   const submitClaim = async (e) => {
     e.preventDefault();
     if (!form.label.trim()) {
-      labelRef.current.focus();
+      labelRef.current?.focus(); // Use optional chaining
       return;
     }
     const idx = claimIdx;
@@ -116,7 +118,7 @@ export default function Wall() {
     try {
       await setDoc(doc(db, "tiles", String(idx)), newTile);
       setWhisper(`#${idx} CLAIMED`);
-      setClaimIdx(null); // Keep modal open briefly? Or just let the wall update
+      setClaimIdx(null);
     } catch (err) {
       console.error("Save error:", err);
       setWhisper("SAVE FAILED—RETRY");
@@ -125,12 +127,20 @@ export default function Wall() {
 
   // 6️⃣ — Subtle Whispers (Enhanced)
   const triggerWhispers = useCallback(() => {
-    if (!user || !hasInteractedRef.current) return; // Only whisper after interaction
+    // Clear any existing timeout to prevent multiple loops
+    if (triggerWhispers.timeoutId) clearTimeout(triggerWhispers.timeoutId);
+
+    if (!user || !hasInteractedRef.current) {
+      triggerWhispers.timeoutId = setTimeout(triggerWhispers, 5000); // Re-check after a delay if not ready
+      return;
+    }
+
     const delay = 15000 + Math.random() * 15000;
     const emptyTileCount = tiles.filter((tile) => !tile).length;
+    let hint = "";
 
     if (emptyTileCount > 0 && myIndex === null) {
-      const hint = getRandomElement([
+      hint = getRandomElement([
         "... an empty space awaits...",
         "... leave your mark...",
         "... the wall is listening...",
@@ -138,41 +148,92 @@ export default function Wall() {
         "... tap to claim...", // Interaction hint
         "... click a square...", // Interaction hint
       ]);
-      setWhisper(hint);
     } else if (myIndex !== null && viewTile?.claimedBy !== user.uid) {
-      const hint = getRandomElement([
+      hint = getRandomElement([
         "... others have left their echoes...",
         "... see what others have shared...",
         "... a story in every square...",
       ]);
-      setWhisper(hint);
     } else if (myIndex !== null && viewTile?.claimedBy === user.uid) {
-      const hint = getRandomElement([
+      hint = getRandomElement([
         "... you've made your mark...",
         "... your echo resonates...",
       ]);
-      setWhisper(hint);
     } else if (emptyTileCount === 0) {
-      const hint = getRandomElement([
+      hint = getRandomElement([
         "... the wall is full...",
         "... every space claimed...",
       ]);
-      setWhisper(hint);
     } else if (myIndex === null && emptyTileCount < TOTAL) {
-      const hint = getRandomElement([
+      hint = getRandomElement([
         "... the wall is filling...",
         "... more echoes appear...",
       ]);
+    }
+
+    if (hint) { // Only set whisper if a relevant hint is found
       setWhisper(hint);
     }
 
-    setTimeout(triggerWhispers, delay);
+    triggerWhispers.timeoutId = setTimeout(triggerWhispers, delay);
   }, [user, tiles, myIndex, viewTile, setWhisper]);
 
   useEffect(() => {
-    const initialDelay = 5000 + Math.random() * 5000;
-    setTimeout(triggerWhispers, initialDelay);
+    // Initial call to start whispers
+    triggerWhispers();
+    // Cleanup on unmount
+    return () => {
+      if (triggerWhispers.timeoutId) clearTimeout(triggerWhispers.timeoutId);
+    };
   }, [triggerWhispers]);
+
+
+  // 7️⃣ — Modal Keyboard Visibility Adjustment for Mobile
+  useEffect(() => {
+    if (!isPhone || claimIdx === null) return; // Only apply on phone when claim modal is open
+
+    const adjustModalForKeyboard = () => {
+      const modalOverlay = document.querySelector('.modal-overlay');
+      if (modalOverlay) {
+        // A simple adjustment: push the modal up from the bottom
+        // This might need fine-tuning based on actual keyboard height
+        modalOverlay.style.alignItems = 'flex-start';
+        modalOverlay.style.paddingTop = '20px'; // Add some top padding
+        modalOverlay.style.paddingBottom = '100px'; // Add padding at bottom to reveal content above keyboard
+        modalOverlay.style.overflowY = 'auto'; // Ensure modal content is scrollable
+      }
+    };
+
+    const resetModalPosition = () => {
+      const modalOverlay = document.querySelector('.modal-overlay');
+      if (modalOverlay) {
+        modalOverlay.style.alignItems = 'center'; // Reset to center
+        modalOverlay.style.paddingTop = '0';
+        modalOverlay.style.paddingBottom = '0';
+        modalOverlay.style.overflowY = 'hidden'; // Reset overflow
+      }
+    };
+
+    const inputs = [labelRef.current, messageTextareaRef.current];
+
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('focus', adjustModalForKeyboard);
+        input.addEventListener('blur', resetModalPosition);
+      }
+    });
+
+    // Cleanup listeners
+    return () => {
+      inputs.forEach(input => {
+        if (input) {
+          input.removeEventListener('focus', adjustModalForKeyboard);
+          input.removeEventListener('blur', resetModalPosition);
+        }
+      });
+    };
+  }, [isPhone, claimIdx]);
+
 
   // 🚦 — auth loading / error states
   if (user === undefined) {
@@ -241,6 +302,7 @@ export default function Wall() {
               />
             </div>
             <textarea
+              ref={messageTextareaRef} // Attach ref here
               maxLength={140}
               placeholder="Optional message (140 chars)"
               value={form.message}

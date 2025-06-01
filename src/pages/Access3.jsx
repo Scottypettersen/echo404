@@ -1,129 +1,184 @@
 // src/pages/Access3.jsx
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useEcho } from '../context/EchoContext';
+import './Access3.css'; // Make sure to create Access3.css
 
-const CORRECT_ORDER = ['E', 'C', 'H', 'O'];
+const SEQUENCE_LENGTH = 6;
+const DISPLAY_DURATION = 1200;
+const RECALL_ATTEMPTS = 4;
+const CHAR_SET = '0123';
 
-function shuffle(array) {
-  return array
-    .map((value) => ({ value, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ value }) => value);
+// New array of cryptic and relevant whispers for Access3
+const ACCESS3_WHISPERS = [
+  "... the echo demands precision...",
+  "... a fleeting pattern, held in the mind's eye...",
+  "... digital ghosts whisper their order...",
+  "... the sequence unravels with time...",
+  "... remember the pulse of the data stream...",
+  "... fragments of truth, in precise alignment...",
+  "... the system tests your recall, human...",
+  "... what was shown, must be returned...",
+  "... the static holds a hidden rhythm...",
+  "... a glitch in memory... or a test?",
+  "... they learn what you retain...", // AI concern
+  "... the network gauges your processing...", // AI concern
+  "... every digit holds a breath...",
+  "... the core remembers your attempts...",
+];
+
+function generateSequence(length) {
+  let sequence = [];
+  for (let i = 0; i < length; i++) {
+    sequence.push(CHAR_SET[Math.floor(Math.random() * CHAR_SET.length)]);
+  }
+  return sequence;
 }
 
 export default function Access3() {
-  // initialize tiles only once
-  const [tiles, setTiles] = useState(() => shuffle(CORRECT_ORDER));
-  const [solved, setSolved] = useState(false);
-  const timerRef = useRef(null);
+  const [sequence, setSequence] = useState(() => generateSequence(SEQUENCE_LENGTH));
+  const [userSequence, setUserSequence] = useState('');
+  const [displaying, setDisplaying] = useState(false);
+  const [attempt, setAttempt] = useState(1);
+  const [feedback, setFeedback] = useState('');
   const navigate = useNavigate();
   const { setWhisper } = useEcho();
+  const timerRef = useRef(null);
+  const inputRef = useRef(null); // Ref for the visual input slot
+  const whisperIntervalRef = useRef(null); // Ref for the whisper interval
 
-  // cleanup any pending timeout on unmount
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
+    setWhisper('ACCESS POINT THREE: RECALL SEQUENCE');
+    startSequenceDisplay();
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
+    // Set up continuous cryptic whispers
+    const initialWhisperTimeout = setTimeout(() => {
+      whisperIntervalRef.current = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * ACCESS3_WHISPERS.length);
+        setWhisper(`... ECHO: ${ACCESS3_WHISPERS[randomIndex]}`);
+      }, 7000 + Math.random() * 5000); // Random interval between 7 and 12 seconds
+    }, 3000); // Initial delay before whispers start
 
-    const reordered = Array.from(tiles);
-    const [moved] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, moved);
-
-    setTiles(reordered);
-
-    if (reordered.join('') === CORRECT_ORDER.join('')) {
-      setSolved(true);
-      setWhisper('MEMORY ALIGNED');
-      localStorage.setItem('echo-unlocked', 'true');
-
-      timerRef.current = setTimeout(() => {
-        navigate('/unlock');
-      }, 1500);
+    // Focus the input slot on mount (for desktop users)
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
-  };
+
+    return () => {
+      clearTimeout(timerRef.current);
+      clearTimeout(initialWhisperTimeout); // Clear initial whisper timeout
+      clearInterval(whisperIntervalRef.current); // Clear recurring whisper interval
+    };
+  }, [setWhisper]);
+
+  const startSequenceDisplay = useCallback(() => {
+    setDisplaying(true);
+    setFeedback('Memorize the sequence...');
+    setUserSequence(''); // Reset user input for new attempt
+    timerRef.current = setTimeout(() => {
+      setDisplaying(false);
+      setFeedback('Enter the sequence...');
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, DISPLAY_DURATION);
+  }, [setUserSequence]);
+
+  const handleVirtualKeyPress = useCallback((char) => {
+    if (!displaying && userSequence.length < SEQUENCE_LENGTH) {
+      setUserSequence(prevSequence => prevSequence + char);
+      if (inputRef.current) {
+        inputRef.current.focus(); // Keep focus on the input slot
+      }
+    }
+  }, [displaying, userSequence]);
+
+  const handleBackspace = useCallback(() => {
+    if (!displaying && userSequence.length > 0) {
+      setUserSequence(prevSequence => prevSequence.slice(0, -1));
+      if (inputRef.current) {
+        inputRef.current.focus(); // Keep focus on the input slot
+      }
+    }
+  }, [displaying, userSequence]);
+
+  const checkSequence = useCallback(() => {
+    if (!displaying) {
+      if (userSequence === sequence.join('')) {
+        setFeedback('SEQUENCE MATCHED. ACCESS GRANTED.');
+        setTimeout(() => navigate('/wall'), 1500);
+      } else {
+        setFeedback(`SEQUENCE INCORRECT. Attempt ${attempt} of ${RECALL_ATTEMPTS}.`);
+        if (attempt < RECALL_ATTEMPTS) {
+          setAttempt(attempt + 1);
+          setTimeout(startSequenceDisplay, 2000);
+        } else {
+          setFeedback('ACCESS DENIED. SYSTEM LOCKDOWN.');
+          setTimeout(() => navigate('/denied'), 2000);
+        }
+      }
+      if (inputRef.current) {
+        inputRef.current.focus(); // Refocus after checking
+      }
+    }
+  }, [userSequence, sequence, attempt, navigate, displaying, startSequenceDisplay]);
+
+  const handleKeyDown = useCallback((event) => {
+    if (!displaying) {
+      if (CHAR_SET.includes(event.key.toUpperCase()) && userSequence.length < SEQUENCE_LENGTH) {
+        setUserSequence(prevSequence => prevSequence + event.key.toUpperCase());
+      } else if (event.key === 'Backspace') {
+        setUserSequence(prevSequence => prevSequence.slice(0, -1));
+      } else if (event.key === 'Enter' && userSequence.length === SEQUENCE_LENGTH) {
+        checkSequence();
+      }
+    }
+  }, [displaying, userSequence, checkSequence]);
 
   return (
-    <main
-      style={{
-        backgroundColor: '#000',
-        color: '#0f0',
-        fontFamily: 'monospace',
-        height: '100vh',
-        padding: '2rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
-        {'> Final Trace Lock'}
-      </h1>
-      <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-        Reorder memory tiles to restore access.
-      </p>
+    <main className="access3-container">
+      <h1 className="access3-title">&gt; FINAL TRACE LOCK</h1>
+      <p className="access3-subtitle">Recall the digital echo.</p>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="tiles" direction="horizontal">
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              aria-label="Reorder the tiles"
-              role="list"
-              style={{
-                display: 'flex',
-                gap: '1rem',
-                marginBottom: '1rem',
-              }}
+      <div className={`sequence-display ${displaying ? 'displaying' : ''}`}>
+        {displaying ? sequence.join('') : Array(SEQUENCE_LENGTH).fill('_').join('')}
+      </div>
+
+      <div className="input-area">
+        <div
+          ref={inputRef}
+          className="user-input"
+          tabIndex={0}
+          aria-label="Enter the sequence"
+          onKeyDown={handleKeyDown} // Attach the listener here
+          onClick={() => inputRef.current?.focus()} // Ensure focus on click
+        >
+          {userSequence || Array(SEQUENCE_LENGTH).fill('_').join('')}
+        </div>
+        <div className="keypad">
+          {CHAR_SET.split('').map(char => (
+            <button
+              key={char}
+              className="keypad-button"
+              onClick={() => handleVirtualKeyPress(char)}
+              disabled={displaying || userSequence.length >= SEQUENCE_LENGTH}
+              tabIndex={0}
             >
-              {tiles.map((letter, index) => (
-                <Draggable key={letter} draggableId={letter} index={index}>
-                  {(prov) => (
-                    <div
-                      ref={prov.innerRef}
-                      {...prov.draggableProps}
-                      {...prov.dragHandleProps}
-                      role="listitem"
-                      style={{
-                        backgroundColor: '#111',
-                        color: '#0f0',
-                        border: '1px solid #0f0',
-                        fontSize: '1.25rem',
-                        width: 50,
-                        height: 50,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: solved ? 'default' : 'grab',
-                        userSelect: 'none',
-                        ...prov.draggableProps.style,
-                      }}
-                    >
-                      {letter}
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
+              {char}
+            </button>
+          ))}
+          {userSequence.length > 0 && (
+            <button className="keypad-button backspace" onClick={handleBackspace} disabled={displaying} tabIndex={0}>
+              &lt;--
+            </button>
           )}
-        </Droppable>
-      </DragDropContext>
+          <button className="keypad-button check" onClick={checkSequence} disabled={displaying || userSequence.length !== SEQUENCE_LENGTH} tabIndex={0}>
+            CHECK
+          </button>
+        </div>
+      </div>
 
-      {solved && (
-        <p style={{ color: '#0f0', marginTop: '1rem' }}>
-          ✓ Memory alignment complete.
-        </p>
-      )}
+      {feedback && <p className="feedback">{feedback}</p>}
     </main>
   );
 }

@@ -5,18 +5,17 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { EchoProvider } from './context/EchoContext';
-import './firebase'; // ← initializes auth + Firestore
+import './firebase'; // initializes auth + Firestore
 
 const rootEl = document.getElementById('root');
+if (!rootEl) throw new Error('Root element #root not found');
 
-ReactDOM
-  .createRoot(rootEl)
-  .render(
-    <React.StrictMode>
+ReactDOM.createRoot(rootEl).render(
+  <React.StrictMode>
+    <BrowserRouter>
       <EchoProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <App />
       </EchoProvider>
-    </React.StrictMode>
-  );
+    </BrowserRouter>
+  </React.StrictMode>
+);
